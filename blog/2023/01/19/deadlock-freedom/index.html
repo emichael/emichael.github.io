@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>Deadlock Freedom: Beyond Liveness Properties</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2023/01/19/deadlock-freedom/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>Deadlock Freedom: Beyond Liveness Properties</h1>
+  
+  <p class="date">19 Jan 2023</p>
+
+  <h3>Properties</h3>
+
+<p>In their classic paper, &ldquo;Defining Liveness&rdquo;
+<a class="citation" href="#alpern87:defining-liveness">[1]</a>, Alpern and Schneider show that all
+properties of distributed systems are the conjunction of a safety property and a
+liveness property. Informally, safety properties specify the &ldquo;bad things&rdquo; that
+should not happen while liveness properties specify the &ldquo;good things&rdquo; that must
+happen. More formally, safety properties are the properties which can always be
+falsified by <em>finite traces</em> and liveness properties are the properties which
+can only be falsified by <em>infinite traces</em>. If \(S\) is the set of program
+states, \(S^\omega\) is the set of infinite sequences of program states, and
+\(S^*\) is the set of finite sequences of program states then \(P\) is a
+safety property if</p>
+
+\[\forall \sigma \in S^\omega : \exists i \ge 0 : \forall \beta \in S^\omega :
+\sigma \not \in P \implies \sigma[..i]\beta \not \in P\]
+
+<p>and \(P\) is a liveness property if</p>
+
+\[\forall \alpha \in S^* : \exists \beta \in S^\omega : \alpha \beta \in P \ .\]
+
+<p>Here, \(\sigma[..i]\) is just the finite sequence with the first \(i\)
+elements of \(\sigma\) and \(\sigma[..i] \beta\) and \(\alpha \beta\) are
+concatenations of sequences.</p>
+
+<p>Alpern and Schneider also give two different proofs that <em>any property</em> can be
+decomposed into a safety property and a liveness property, one based on topology
+and one based on automata theory
+<a class="citation" href="#alpern87:defining-liveness">[1, 2]</a>.
+I haven&rsquo;t yet defined what a &ldquo;property&rdquo; is, though. It&rsquo;s implicit in the above
+definitions, but in this characterization, <strong>a property is just a set of
+(infinite) traces</strong>!</p>
+
+<h3>The Properties of Consensus</h3>
+
+<p>Properties are powerful and can be used to specify important things we want from
+our distributed systems. For example, the specification of the consensus problem
+can be expressed as the intersection of a safety property &ndash; all correct
+processes that decide a value decide the same value, and that value must have
+been some input value &ndash; and a liveness property &ndash; all correct (non-failing)
+processes eventually decide a value.</p>
+
+<p>Sometimes, proving properties (especially liveness properties) of systems
+requires making additional assumptions. Consider the termination guarantees of a
+system like Paxos. We know that consensus in an asynchronous environment with
+the possibility of a single process failure cannot be solved (without
+randomization) <a class="citation" href="#flp">[3]</a>. In particular, protocols which guarantee safety
+cannot guarantee termination. However, people use protocols such as Paxos in
+practice. Are these practitioners just religious zealots in the Paxos cult,
+believing without any basis that Paxos will save them from the evils of
+impossibility results? Of course not! We <em>can</em> prove things about the liveness
+of Paxos; in particular, a Paxos implementation with a well-designed leader
+election mechanism can guarantee liveness during periods of sufficient
+synchrony.</p>
+
+<p>How do we formalize what &ldquo;periods of sufficient synchrony&rdquo; are? One way people
+do this is through the use of failure detectors. If you equip each replica with
+a failure detector which is responsible for informing the replica when the
+current leader has failed, then we know that as long as the failure detectors
+behave at least as well as \(\diamond W\), the weakest failure detector that
+can solve consensus <a class="citation" href="#chandra96:weak-fail">[4]</a>, (and as long as the network
+itself satisfies basic fairness criteria<sup id="fnref:fairness" role="doc-noteref"><a href="#fn:fairness" class="footnote" rel="footnote">1</a></sup>) then the system is
+guaranteed to eventually make progress. The way that you could disprove that
+Paxos (or an implementation of Paxos) satisfies this &ldquo;\(\diamond W\)-termination&rdquo; liveness property is by describing an infinite (fair) execution
+of Paxos in which the failure detectors satisfy the \(\diamond W\) guarantees,
+no more than \(f\) processes fail, and some correct process never decides a
+value.</p>
+
+<h3>Deadlock Freedom</h3>
+
+<p>While proving liveness properties of consensus protocols like Paxos is useful,
+it will always involve making additional assumptions about the well-behavedness
+of the environment. I claim, however, that there is something much more basic
+that we would like to say about Paxos and many other distributed protocols and
+implementations of those protocols that <em>does not</em> rely on any additional
+assumptions. I&rsquo;ve been calling this property deadlock freedom.</p>
+
+<p style="text-align: center">
+  <b>Deadlock Freedom:</b>
+  The system cannot reach a state from which no terminating state is reachable.
+</p>
+
+<p>Notice that deadlock freedom is neither a safety nor liveness property &ndash; it&rsquo;s
+not a property at all! We can easily express it in a branching temporal logic
+such as CTL (e.g., \(\mathbf{AG}. \mathbf{EF}. termination\)), but deadlock
+freedom cannot be falsified with a single trace. Just because a system <em>can</em>
+fail to make progress forever doesn&rsquo;t mean that it ever reaches a state from
+which progress is impossible. However, <strong>any liveness properties that you wish
+to prove about a system will imply deadlock freedom</strong>, unless additional
+assumptions you employ to prove liveness make the dead states unreachable.</p>
+
+<p>You might think that deadlock freedom is actually a safety property. After all,
+deadlocks in a multi-threaded locking scheme can be detected by looking for
+cycles in the wait-for graph. If a locking system cannot reach a cyclically
+waiting state, then it is free of deadlocks.</p>
+
+<p>&ldquo;Deadlocks&rdquo; in distributed systems, however, can be much more subtle. Imagine
+implementing a 500,000 line system that contains a dozen different roles that
+nodes can play. Proving (or even knowing) all of the ways in which such a system
+could get permanently stuck, were they to occur, might be extremely difficult.
+But expressing the ways in which the system can make progress might be
+comparatively easy. We would like to be able to express useful attributes of our
+systems (such as deadlock freedom) without needing to prove complicated
+theorems.</p>
+
+<p>Deadlock freedom is also a useful attribute of systems to look for in model
+checkers. In <a href="/dslabs/">DSLabs</a>, while we do not check for deadlock freedom in
+general, we do check that student implementations can make progress <em>from
+specific intermediate states</em>.</p>
+
+<h3>Hyperproperties</h3>
+
+<p>While deadlock freedom is not a property, it <em>is</em> a hyperproperty.
+Hyperproperties, as defined by Clarkson and Schneider, are <strong>sets of sets of
+(infinite) traces</strong> <a class="citation" href="#clarkson_hyperproperties_2010">[5]</a>. A distributed
+system satisfies a hyperproperty if the complete set of possible executions it
+can produce is in the hyperproperty. In light of hyperproperties, what we have
+been just calling &ldquo;properties&rdquo; up until now are referred to as <strong>trace
+properties</strong> for clarity.</p>
+
+<p>It turns out that there is an analogous safety and liveness decomposition for
+hyperproperties! Safety hyperproperties are the hyperproperties which can always
+be falsified by <em>finite sets of finite traces</em>,<sup id="fnref:hypersafety" role="doc-noteref"><a href="#fn:hypersafety" class="footnote" rel="footnote">2</a></sup> and liveness
+hyperproperties are hyperproperties which cannot be falsified by finite sets of
+finite traces.<sup id="fnref:hyperliveness" role="doc-noteref"><a href="#fn:hyperliveness" class="footnote" rel="footnote">3</a></sup> (See the hyperproperties paper for a more full
+discussion of the definitions of hyperproperties <a class="citation" href="#clarkson_hyperproperties_2010">[5]</a>.) Furthermore, every hyperproperty is the
+conjunction of a safety hyperproperty and a liveness hyperproperty.</p>
+
+<p>Deadlock freedom is a liveness hyperproperty. It cannot be falsified with finite
+traces at all. A counter-example to deadlock freedom would have to show that
+there is some state that is reachable, and in all possible executions which
+reach that state, termination/progress is never achieved.</p>
+
+<p>Hyperproperties were introduced to specify important security policies (such as
+secure information flow) and complex liveness requirements (e.g., SLAs such as
+mean response time). However, as we have seen, they can be much more basic.
+Deadlock freedom is a liveness hyperproperty which is broadly applicable and
+extremely desirable. While trace properties are a useful narrowing of
+hyperproperties because they can be more amenable to certain formal methods
+techniques such as verification and model checking, a broader understanding of
+the specification of distributed systems <em>must</em> include hyperproperties, which I
+do not think are as widely understood, hence the reason for this blog post.</p>
+
+<h3>References</h3>
+<ol class="acm-bib"><li><span id="alpern87:defining-liveness"><span style="font-variant: small-caps">Alpern, B. and Schneider, F.B.</span> Defining liveness. <i>Information Processing Letters</i>. 21(4):181–185. 1985.</span></li>
+<li><span id="alpern87:reco-safe"><span style="font-variant: small-caps">Alpern, B. and Schneider, F.B.</span> Recognizing Safety and Liveness. <i>Distributed Computing</i>. 2(3):117–126. Sep. 1987.</span></li>
+<li><span id="flp"><span style="font-variant: small-caps">Fischer, M.J., Lynch, N.A. and Paterson, M.S.</span> Impossibility of Distributed Consensus with One Faulty Process. <i>J. ACM</i>. 32(2):374–382. Apr. 1985.</span></li>
+<li><span id="chandra96:weak-fail"><span style="font-variant: small-caps">Chandra, T.D., Hadzilacos, V. and Toueg, S.</span> The Weakest Failure Detector for Solving Consensus. <i>jacm</i>. 43(4):685–722. Jul. 1996.</span></li>
+<li><span id="clarkson_hyperproperties_2010"><span style="font-variant: small-caps">Clarkson, M.R. and Schneider, F.B.</span> Hyperproperties. <i>Journal of Computer Security</i>. 18(6):1157–1210. Sep. 2010.</span></li></ol>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:fairness" role="doc-endnote">
+      <p>The fairness criteria that are assumed vary, but one basic
+         assumption that is usually necessary is that all processes either
+         fail or take infinitely many steps. The FLP impossibility result
+         assumes that all messages are eventually delivered (as long as the
+         receiver has not failed), which is a particularly strong assumption
+         but only broadens the applicability of the impossibility
+         result. When proving the liveness of protocols, weaker
+         assumptions about message delivery are often assumed. For example,
+         a fair-lossy network only guarantees that if a message is sent
+         infinitely many times (from the same sender to the same receiver),
+         then it is delivered infinitely many times.&nbsp;<a href="#fnref:fairness" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:hypersafety" role="doc-endnote">
+      <p>That is, no complete set of executions which extends a
+            counter-example set of finite traces will satisfy a safety
+            hyperproperty. If we have two sets of (possibly infinite) traces
+            \(A\) and \(B\), then \(A \le B\) if \(\forall a \in A :
+            \exists b \in B : a \le b\) where \(a \le b\) means that \(a\) is a prefix of \(b\). A hyperproperty is a safety
+            hyperproperty if, for every set of executions, \(T\) which
+            does not satisfy the safety hyperproperty, there exists a finite
+            set of finite traces \(C \le T\) such that for all \(T' \ge C\), \(T'\) also does not satisfy the hyperproperty.&nbsp;<a href="#fnref:hypersafety" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:hyperliveness" role="doc-endnote">
+      <p>A hyperproperty is a liveness hyperproperty if, for all finite
+              sets of finite traces \(C\), \(\exists T \ge C\) such that
+              \(T\) satisfies the hyperproperty.&nbsp;<a href="#fnref:hyperliveness" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+</body>
+</html>

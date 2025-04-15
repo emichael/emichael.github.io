@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>Producers and Consumers</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2018/08/27/num-executions-producers-consumers/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>Producers and Consumers</h1>
+  
+  <p class="date">27 Aug 2018</p>
+
+  <p>At a recent talk of Leslie Lamport, he raised the question of how many possible executions there are for a bounded-buffer producer-consumer protocol for a given set of input values.
+Leslie&rsquo;s point was that, from the standpoint of the values produced and consumed, there is only one execution, and the only things that we can say about the ordering of these events is that a value must be produced before it is consumed and that before a value can be produced, enough values must have been consumed so that there is room in the buffer.</p>
+
+<p>I started wondering, though, just how many executions are there exactly?
+For a given buffer size and length of execution, how many possible (legal) sequences of produce and consume events are possible?
+Equivalently, how many strings of \(P\)s and \(C\)s of a given length are there such that the number of \(C\)s in any prefix is less than or equal to the number of \(P\)s and the number of \(P\)s minus the number of \(C\)s in any prefix is less than or equal to the buffer size?
+Writing down the recurrence for the general case is easy enough, and computers are very fast and good with numbers, so let&rsquo;s see a few results.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">functools</span>
+
+<span class="o">@</span><span class="n">functools</span><span class="p">.</span><span class="n">lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">U</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">U</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">U</span> <span class="o">&gt;</span> <span class="n">B</span><span class="p">:</span> <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">S</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">S</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">f</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">S</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">U</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Here, \(B\) is the size of the buffer, \(S\) is the number of steps in the execution, and \(U\) is the number of used slots in the buffer (initially 0).</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">([</span> <span class="n">f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span> <span class="p">])</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>When the buffer size is 1, there only ever one execution, no matter how many steps we take.
+It&rsquo;s just the \(S\)-length prefix of the infinite \(PCPCPCPCPC...\) string.
+What about when the buffer size is 2?</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">([</span> <span class="n">f</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span> <span class="p">])</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>Here, we see once-repeated increasing powers of 2.
+To see why this is the case, imagine the state of the buffer.
+When it&rsquo;s empty or full, there is only one action that can be taken, a produce or consume, respectively.
+On the other hand, when there is a single value in the buffer, both actions are possible.</p>
+
+<p><img src="/img/tikz/4147538e228d27ec2d6fa9aa7cb0555d.svg" class="tikz" /></p>
+
+<p>Now, given both of those results, try to guess what the sequence looks like when \(B = 3\).</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">([</span> <span class="n">f</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span> <span class="p">])</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">34</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">89</span><span class="p">,</span> <span class="mi">144</span><span class="p">,</span> <span class="mi">233</span><span class="p">,</span> <span class="mi">377</span><span class="p">,</span> <span class="mi">610</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>Did you guess the Fibonacci sequence?
+This one&rsquo;s a little harder to see.
+It&rsquo;s not obvious (to me at least) why the Fibonacci recurrence should apply.
+If \(f(3, i)\) is the number of executions possible with exactly \(i\) steps with a buffer of size 3, let&rsquo;s let \(f_{0, 3}(3, i)\) be the number of those executions where the final state of the buffer is full or empty.
+Then, let \(f_{1, 2}(3, i)\) be the number of executions ending in the buffer having 1 or 2 values.
+First, we have the obvious identity.</p>
+
+\[f(3, i) = f_{0, 4}(3, i) + f_{1, 2}(3, i)\]
+
+<p>Then, we have a pair of recurrences that are easiest to see pictorially.</p>
+
+<p><img src="/img/tikz/7a4dadb06a942bc92d9345757c23a284.svg" class="tikz" /></p>
+
+<p>Namely, the following:</p>
+
+\[f_{0, 4}(3, i) = f_{1, 2}(3, i - 1)\]
+
+\[f_{1, 2}(3, i) = f_{0, 4}(3, i - 1) + f_{1, 2}(3, i - 1)\]
+
+<p>Then, the derivation is straightforward.</p>
+
+\[\begin{align*}
+f(3, i) &amp;= f_{0, 4}(3, i) + f_{1, 2}(3, i) \\
+        &amp;= f_{0, 4}(3, i - 1) + 2 f_{1, 2}(3, i - 1) \\
+        &amp;= f(3, i - 1) + f_{1, 2}(3, i - 1) \\
+        &amp;= f(3, i - 1) + f_{0, 4}(3, i - 2) + f_{1, 2}(3, i - 2) \\
+        &amp;= f(3, i - 1) + f(3, i - 2)
+\end{align*}\]
+
+<p>Finally, let&rsquo;s see what happens when the buffer is unbounded (by setting the size of the buffer to the number of steps in the execution).</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">([</span> <span class="n">f</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span> <span class="p">])</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">126</span><span class="p">,</span> <span class="mi">252</span><span class="p">,</span> <span class="mi">462</span><span class="p">,</span> <span class="mi">924</span><span class="p">,</span> <span class="mi">1716</span><span class="p">,</span> <span class="mi">3432</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>Here, we see a different sequence.
+The number of possible executions with \(i\) steps is \({i \choose \lfloor i / 2 \rfloor}\).
+Let \(X\) be set of \(i\)-length \(P/C\) sequences with exactly \(\left \lfloor \frac{i}{2} \right \rfloor\)  \(C\)s (some of which represent invalid executions) and let \(Y\) be the set of valid sequences.</p>
+
+<p>First, given a sequence in \(X\), we can transform it into a valid sequence in \(Y\) by scanning left to right, keeping track the number of values in the buffer.
+If a \(C\) is invalid (i.e., would result in the number of values in the buffer becoming negative), we change it to a \(P\) and <em>treat it as a null operation on the buffer</em> (i.e., neither a \(C\) nor a \(P\)).
+So, \(CPCCPPPP\) would become \(PPCPPPPP\).
+Then, to invert that transformation, we count the number of \(P\)s that should be transformed to \(C\)s and then repeatedly scan from right to left, replacing a \(P\) with  a \(C\) every time doing so would cause the sequence to become invalid, treating the new \(C\) as neither a \(P\) nor \(C\) for the remainder of the operation.
+Here are these two transformations in Python.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">t</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">pc</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="s">''</span>
+    <span class="k">for</span> <span class="n">xi</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pc</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">xi</span> <span class="o">==</span> <span class="s">'C'</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">+=</span> <span class="s">'P'</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">+=</span> <span class="n">xi</span>
+            <span class="k">if</span> <span class="n">xi</span> <span class="o">==</span> <span class="s">'P'</span><span class="p">:</span>
+                <span class="n">pc</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pc</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">r</span>
+
+<span class="k">def</span> <span class="nf">ti</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">y</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">'P'</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="n">p</span>
+
+    <span class="k">while</span> <span class="n">p</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">pi</span><span class="p">,</span> <span class="n">ci</span>  <span class="o">=</span> <span class="n">p</span><span class="p">,</span> <span class="n">c</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">'C'</span><span class="p">:</span>
+                <span class="n">ci</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">'P'</span><span class="p">:</span>
+                <span class="n">pi</span> <span class="o">-=</span> <span class="mi">1</span>
+
+                <span class="k">if</span> <span class="n">ci</span> <span class="o">&gt;=</span> <span class="n">pi</span><span class="p">:</span>
+                    <span class="n">p</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s">'X'</span>
+                    <span class="k">break</span>
+
+    <span class="k">return</span> <span class="s">''</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="s">'C'</span> <span class="k">if</span> <span class="n">yi</span> <span class="o">==</span> <span class="s">'X'</span> <span class="k">else</span> <span class="n">yi</span> <span class="k">for</span> <span class="n">yi</span> <span class="ow">in</span> <span class="n">y</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Since these transformations are, indeed, inverses of each other, we get
+\(|X| = |Y|\).</p>
+
+<p>Of course, none of the above observations are new, and some/all are simple enough to be put to undergraduates in a discrete math course.
+Typically, these problems would be put in terms of the number of sequences of 1 and -1 where the partial sums are all nonnegative and less than some bound.
+I just liked that you could describe interesting combinatorics problems in terms of a common synchronization primitive.</p>
+
+<p>Furthermore, there are still more interesting sequences for different values of \(B\).
+For instance, when \(B = 4\), we get:</p>
+
+\[f(4, i) = \begin{cases}
+1 &amp; i = 0 \\
+3^{\frac{i - 1}{2}} &amp; \text{$i$ odd} \\
+2 \cdot 3^{\frac{i}{2} - 1} &amp; \text{$i$ even}, i \ne 0
+\end{cases}\]
+
+<p>If anyone knows a closed-form expression for \(f (B, S)\), I would be grateful.</p>
+
+<h3>Acknowledgments</h3>
+<p>Thanks to <a href="https://homes.cs.washington.edu/~helgi/">Helgi</a> for pointing out a bug in an earlier version of my <code class="language-plaintext highlighter-rouge">t(x)</code> and <code class="language-plaintext highlighter-rouge">ti(y)</code> functions.</p>
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+</body>
+</html>

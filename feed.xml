@@ -1,0 +1,1451 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ellis Michael</title>
+    <description></description>
+    <link>https://ellismichael.com/</link>
+    <atom:link href="https://ellismichael.com/feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>Mon, 14 Apr 2025 17:53:24 -0700</pubDate>
+    <lastBuildDate>Mon, 14 Apr 2025 17:53:24 -0700</lastBuildDate>
+    <generator>Jekyll v4.2.2</generator>
+    
+      <item>
+        <title>Deadlock Freedom: Beyond Liveness Properties</title>
+        <description>&lt;p&gt;Warning: This post contains LaTeX rendered with MathJax. It may not render properly in your RSS reader.&lt;/p&gt;&lt;h3&gt;Properties&lt;/h3&gt;
+
+&lt;p&gt;In their classic paper, &amp;ldquo;Defining Liveness&amp;rdquo;
+&lt;a class=&quot;citation&quot; href=&quot;#alpern87:defining-liveness&quot;&gt;[1]&lt;/a&gt;, Alpern and Schneider show that all
+properties of distributed systems are the conjunction of a safety property and a
+liveness property. Informally, safety properties specify the &amp;ldquo;bad things&amp;rdquo; that
+should not happen while liveness properties specify the &amp;ldquo;good things&amp;rdquo; that must
+happen. More formally, safety properties are the properties which can always be
+falsified by &lt;em&gt;finite traces&lt;/em&gt; and liveness properties are the properties which
+can only be falsified by &lt;em&gt;infinite traces&lt;/em&gt;. If \(S\) is the set of program
+states, \(S^\omega\) is the set of infinite sequences of program states, and
+\(S^*\) is the set of finite sequences of program states then \(P\) is a
+safety property if&lt;/p&gt;
+
+\[\forall \sigma \in S^\omega : \exists i \ge 0 : \forall \beta \in S^\omega :
+\sigma \not \in P \implies \sigma[..i]\beta \not \in P\]
+
+&lt;p&gt;and \(P\) is a liveness property if&lt;/p&gt;
+
+\[\forall \alpha \in S^* : \exists \beta \in S^\omega : \alpha \beta \in P \ .\]
+
+&lt;p&gt;Here, \(\sigma[..i]\) is just the finite sequence with the first \(i\)
+elements of \(\sigma\) and \(\sigma[..i] \beta\) and \(\alpha \beta\) are
+concatenations of sequences.&lt;/p&gt;
+
+&lt;p&gt;Alpern and Schneider also give two different proofs that &lt;em&gt;any property&lt;/em&gt; can be
+decomposed into a safety property and a liveness property, one based on topology
+and one based on automata theory
+&lt;a class=&quot;citation&quot; href=&quot;#alpern87:defining-liveness&quot;&gt;[1, 2]&lt;/a&gt;.
+I haven&amp;rsquo;t yet defined what a &amp;ldquo;property&amp;rdquo; is, though. It&amp;rsquo;s implicit in the above
+definitions, but in this characterization, &lt;strong&gt;a property is just a set of
+(infinite) traces&lt;/strong&gt;!&lt;/p&gt;
+
+&lt;h3&gt;The Properties of Consensus&lt;/h3&gt;
+
+&lt;p&gt;Properties are powerful and can be used to specify important things we want from
+our distributed systems. For example, the specification of the consensus problem
+can be expressed as the intersection of a safety property &amp;ndash; all correct
+processes that decide a value decide the same value, and that value must have
+been some input value &amp;ndash; and a liveness property &amp;ndash; all correct (non-failing)
+processes eventually decide a value.&lt;/p&gt;
+
+&lt;p&gt;Sometimes, proving properties (especially liveness properties) of systems
+requires making additional assumptions. Consider the termination guarantees of a
+system like Paxos. We know that consensus in an asynchronous environment with
+the possibility of a single process failure cannot be solved (without
+randomization) &lt;a class=&quot;citation&quot; href=&quot;#flp&quot;&gt;[3]&lt;/a&gt;. In particular, protocols which guarantee safety
+cannot guarantee termination. However, people use protocols such as Paxos in
+practice. Are these practitioners just religious zealots in the Paxos cult,
+believing without any basis that Paxos will save them from the evils of
+impossibility results? Of course not! We &lt;em&gt;can&lt;/em&gt; prove things about the liveness
+of Paxos; in particular, a Paxos implementation with a well-designed leader
+election mechanism can guarantee liveness during periods of sufficient
+synchrony.&lt;/p&gt;
+
+&lt;p&gt;How do we formalize what &amp;ldquo;periods of sufficient synchrony&amp;rdquo; are? One way people
+do this is through the use of failure detectors. If you equip each replica with
+a failure detector which is responsible for informing the replica when the
+current leader has failed, then we know that as long as the failure detectors
+behave at least as well as \(\diamond W\), the weakest failure detector that
+can solve consensus &lt;a class=&quot;citation&quot; href=&quot;#chandra96:weak-fail&quot;&gt;[4]&lt;/a&gt;, (and as long as the network
+itself satisfies basic fairness criteria&lt;sup id=&quot;fnref:fairness&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:fairness&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;) then the system is
+guaranteed to eventually make progress. The way that you could disprove that
+Paxos (or an implementation of Paxos) satisfies this &amp;ldquo;\(\diamond W\)-termination&amp;rdquo; liveness property is by describing an infinite (fair) execution
+of Paxos in which the failure detectors satisfy the \(\diamond W\) guarantees,
+no more than \(f\) processes fail, and some correct process never decides a
+value.&lt;/p&gt;
+
+&lt;h3&gt;Deadlock Freedom&lt;/h3&gt;
+
+&lt;p&gt;While proving liveness properties of consensus protocols like Paxos is useful,
+it will always involve making additional assumptions about the well-behavedness
+of the environment. I claim, however, that there is something much more basic
+that we would like to say about Paxos and many other distributed protocols and
+implementations of those protocols that &lt;em&gt;does not&lt;/em&gt; rely on any additional
+assumptions. I&amp;rsquo;ve been calling this property deadlock freedom.&lt;/p&gt;
+
+&lt;p style=&quot;text-align: center&quot;&gt;
+  &lt;b&gt;Deadlock Freedom:&lt;/b&gt;
+  The system cannot reach a state from which no terminating state is reachable.
+&lt;/p&gt;
+
+&lt;p&gt;Notice that deadlock freedom is neither a safety nor liveness property &amp;ndash; it&amp;rsquo;s
+not a property at all! We can easily express it in a branching temporal logic
+such as CTL (e.g., \(\mathbf{AG}. \mathbf{EF}. termination\)), but deadlock
+freedom cannot be falsified with a single trace. Just because a system &lt;em&gt;can&lt;/em&gt;
+fail to make progress forever doesn&amp;rsquo;t mean that it ever reaches a state from
+which progress is impossible. However, &lt;strong&gt;any liveness properties that you wish
+to prove about a system will imply deadlock freedom&lt;/strong&gt;, unless additional
+assumptions you employ to prove liveness make the dead states unreachable.&lt;/p&gt;
+
+&lt;p&gt;You might think that deadlock freedom is actually a safety property. After all,
+deadlocks in a multi-threaded locking scheme can be detected by looking for
+cycles in the wait-for graph. If a locking system cannot reach a cyclically
+waiting state, then it is free of deadlocks.&lt;/p&gt;
+
+&lt;p&gt;&amp;ldquo;Deadlocks&amp;rdquo; in distributed systems, however, can be much more subtle. Imagine
+implementing a 500,000 line system that contains a dozen different roles that
+nodes can play. Proving (or even knowing) all of the ways in which such a system
+could get permanently stuck, were they to occur, might be extremely difficult.
+But expressing the ways in which the system can make progress might be
+comparatively easy. We would like to be able to express useful attributes of our
+systems (such as deadlock freedom) without needing to prove complicated
+theorems.&lt;/p&gt;
+
+&lt;p&gt;Deadlock freedom is also a useful attribute of systems to look for in model
+checkers. In &lt;a href=&quot;/dslabs/&quot;&gt;DSLabs&lt;/a&gt;, while we do not check for deadlock freedom in
+general, we do check that student implementations can make progress &lt;em&gt;from
+specific intermediate states&lt;/em&gt;.&lt;/p&gt;
+
+&lt;h3&gt;Hyperproperties&lt;/h3&gt;
+
+&lt;p&gt;While deadlock freedom is not a property, it &lt;em&gt;is&lt;/em&gt; a hyperproperty.
+Hyperproperties, as defined by Clarkson and Schneider, are &lt;strong&gt;sets of sets of
+(infinite) traces&lt;/strong&gt; &lt;a class=&quot;citation&quot; href=&quot;#clarkson_hyperproperties_2010&quot;&gt;[5]&lt;/a&gt;. A distributed
+system satisfies a hyperproperty if the complete set of possible executions it
+can produce is in the hyperproperty. In light of hyperproperties, what we have
+been just calling &amp;ldquo;properties&amp;rdquo; up until now are referred to as &lt;strong&gt;trace
+properties&lt;/strong&gt; for clarity.&lt;/p&gt;
+
+&lt;p&gt;It turns out that there is an analogous safety and liveness decomposition for
+hyperproperties! Safety hyperproperties are the hyperproperties which can always
+be falsified by &lt;em&gt;finite sets of finite traces&lt;/em&gt;,&lt;sup id=&quot;fnref:hypersafety&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:hypersafety&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;2&lt;/a&gt;&lt;/sup&gt; and liveness
+hyperproperties are hyperproperties which cannot be falsified by finite sets of
+finite traces.&lt;sup id=&quot;fnref:hyperliveness&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:hyperliveness&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;3&lt;/a&gt;&lt;/sup&gt; (See the hyperproperties paper for a more full
+discussion of the definitions of hyperproperties &lt;a class=&quot;citation&quot; href=&quot;#clarkson_hyperproperties_2010&quot;&gt;[5]&lt;/a&gt;.) Furthermore, every hyperproperty is the
+conjunction of a safety hyperproperty and a liveness hyperproperty.&lt;/p&gt;
+
+&lt;p&gt;Deadlock freedom is a liveness hyperproperty. It cannot be falsified with finite
+traces at all. A counter-example to deadlock freedom would have to show that
+there is some state that is reachable, and in all possible executions which
+reach that state, termination/progress is never achieved.&lt;/p&gt;
+
+&lt;p&gt;Hyperproperties were introduced to specify important security policies (such as
+secure information flow) and complex liveness requirements (e.g., SLAs such as
+mean response time). However, as we have seen, they can be much more basic.
+Deadlock freedom is a liveness hyperproperty which is broadly applicable and
+extremely desirable. While trace properties are a useful narrowing of
+hyperproperties because they can be more amenable to certain formal methods
+techniques such as verification and model checking, a broader understanding of
+the specification of distributed systems &lt;em&gt;must&lt;/em&gt; include hyperproperties, which I
+do not think are as widely understood, hence the reason for this blog post.&lt;/p&gt;
+
+&lt;h3&gt;References&lt;/h3&gt;
+&lt;ol class=&quot;acm-bib&quot;&gt;&lt;li&gt;&lt;span id=&quot;alpern87:defining-liveness&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Alpern, B. and Schneider, F.B.&lt;/span&gt; Defining liveness. &lt;i&gt;Information Processing Letters&lt;/i&gt;. 21(4):181–185. 1985.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;alpern87:reco-safe&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Alpern, B. and Schneider, F.B.&lt;/span&gt; Recognizing Safety and Liveness. &lt;i&gt;Distributed Computing&lt;/i&gt;. 2(3):117–126. Sep. 1987.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;flp&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Fischer, M.J., Lynch, N.A. and Paterson, M.S.&lt;/span&gt; Impossibility of Distributed Consensus with One Faulty Process. &lt;i&gt;J. ACM&lt;/i&gt;. 32(2):374–382. Apr. 1985.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;chandra96:weak-fail&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Chandra, T.D., Hadzilacos, V. and Toueg, S.&lt;/span&gt; The Weakest Failure Detector for Solving Consensus. &lt;i&gt;jacm&lt;/i&gt;. 43(4):685–722. Jul. 1996.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;clarkson_hyperproperties_2010&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Clarkson, M.R. and Schneider, F.B.&lt;/span&gt; Hyperproperties. &lt;i&gt;Journal of Computer Security&lt;/i&gt;. 18(6):1157–1210. Sep. 2010.&lt;/span&gt;&lt;/li&gt;&lt;/ol&gt;
+
+&lt;div class=&quot;footnotes&quot; role=&quot;doc-endnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:fairness&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;The fairness criteria that are assumed vary, but one basic
+         assumption that is usually necessary is that all processes either
+         fail or take infinitely many steps. The FLP impossibility result
+         assumes that all messages are eventually delivered (as long as the
+         receiver has not failed), which is a particularly strong assumption
+         but only broadens the applicability of the impossibility
+         result. When proving the liveness of protocols, weaker
+         assumptions about message delivery are often assumed. For example,
+         a fair-lossy network only guarantees that if a message is sent
+         infinitely many times (from the same sender to the same receiver),
+         then it is delivered infinitely many times.&amp;nbsp;&lt;a href=&quot;#fnref:fairness&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+    &lt;li id=&quot;fn:hypersafety&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;That is, no complete set of executions which extends a
+            counter-example set of finite traces will satisfy a safety
+            hyperproperty. If we have two sets of (possibly infinite) traces
+            \(A\) and \(B\), then \(A \le B\) if \(\forall a \in A :
+            \exists b \in B : a \le b\) where \(a \le b\) means that \(a\) is a prefix of \(b\). A hyperproperty is a safety
+            hyperproperty if, for every set of executions, \(T\) which
+            does not satisfy the safety hyperproperty, there exists a finite
+            set of finite traces \(C \le T\) such that for all \(T&apos; \ge C\), \(T&apos;\) also does not satisfy the hyperproperty.&amp;nbsp;&lt;a href=&quot;#fnref:hypersafety&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+    &lt;li id=&quot;fn:hyperliveness&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;A hyperproperty is a liveness hyperproperty if, for all finite
+              sets of finite traces \(C\), \(\exists T \ge C\) such that
+              \(T\) satisfies the hyperproperty.&amp;nbsp;&lt;a href=&quot;#fnref:hyperliveness&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Thu, 19 Jan 2023 00:00:00 -0800</pubDate>
+        <link>https://ellismichael.com/blog/2023/01/19/deadlock-freedom/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2023/01/19/deadlock-freedom/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>Linearizable, Wait-free Reads of Replicated State Machines</title>
+        <description>&lt;p&gt;Warning: This post contains LaTeX rendered with MathJax. It may not render properly in your RSS reader.&lt;/p&gt;&lt;p&gt;I recently read the Gryff paper &lt;a class=&quot;citation&quot; href=&quot;#burke20-gryf-unif&quot;&gt;[1]&lt;/a&gt;, published this
+year at NSDI. As I was reading it, I noticed that the authors utilized a trick
+for achieving linearizable reads of replicated data that has value beyond their
+specific system. Many people who&amp;rsquo;ve studied fault-tolerant replication have
+probably derived it on their own (as I did years ago), but I don&amp;rsquo;t recall ever
+seeing the technique described in an earlier paper.&lt;sup id=&quot;fnref:pub-exists&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:pub-exists&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; So, I thought
+I&amp;rsquo;d take the opportunity to describe the technique on its own as well as how it
+applies to any state machine replication (SMR) protocol, beyond the Gryff
+protocol described by Burke et al.&lt;/p&gt;
+
+&lt;p&gt;Any SMR protocol that guarantees linearizability &lt;a class=&quot;citation&quot; href=&quot;#herlihy90:line-corr&quot;&gt;[2]&lt;/a&gt;
+of updates provides the abstraction that the changes to the underlying state
+(called &amp;ldquo;commands&amp;rdquo;) are processed by a single, fault-tolerant service. Or
+equivalently, there is a logical shared log onto which clients&amp;rsquo; commands are
+appended. In practice, this shared log is often explicitly constructed, and
+separate machines (called &amp;ldquo;replicas&amp;rdquo;) consume the log by executing the commands
+in log order. We know from the FLP impossibility result &lt;a class=&quot;citation&quot; href=&quot;#flp&quot;&gt;[3]&lt;/a&gt; that in
+an asynchronous system in which some replicas can fail, there will always be the
+possibility that the system ceases to make progress and will forever be
+prevented from appending commands to the shared log, even if one assumes that
+all messages that get sent are eventually delivered.&lt;/p&gt;
+
+&lt;p&gt;Does this then imply that reading the state of a replicated state machine is
+necessarily subject to the same limitations? Implementing read operations for an
+SMR protocol naïvely is straightforward. Reads can simple be treated as commands
+and can go through the normal replication protocol. Using this method, however,
+would subject reads to the impossibility result described above and the
+performance bottlenecks that come with some SMR protocols. However, it turns out
+that these downsides are not inherent. Instead, we can guarantee that responses
+to read requests can be returned in a &lt;em&gt;wait-free&lt;/em&gt; manner &lt;a class=&quot;citation&quot; href=&quot;#herlihy91:wait-free&quot;&gt;[4]&lt;/a&gt;. That is, we can guarantee that these read operations
+will terminate in finite rounds of communication.&lt;/p&gt;
+
+&lt;p&gt;Firstly, if one only cares about serializability of reads, rather than
+linearizability, the solution is straightforward. Any client reads the state of
+any replica in a single round of communication (sending the initial request to a
+majority to tolerate faults). As long as replicas have access to the state of
+the system after applying some prefix of the current shared log (as is almost
+always the case with SMR protocols), then a single replica&amp;rsquo;s response to the
+client will suffice.&lt;sup id=&quot;fnref:cache&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:cache&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;2&lt;/a&gt;&lt;/sup&gt; In essence, this weakening of linearizability to
+serializability means that the client might receive &lt;em&gt;stale&lt;/em&gt; data. Whether or not
+this is acceptable depends on the application, but mere serializability can
+sometimes lead to unintuitive results.&lt;/p&gt;
+
+&lt;p&gt;To see how we will achieve wait-free, linearizable reads, we&amp;rsquo;ll take the
+multi-instance Paxos protocol &lt;a class=&quot;citation&quot; href=&quot;#lamport98:part-time&quot;&gt;[5]&lt;/a&gt; as a running
+example (using some of the terminology from Paxos Made Moderately Complex &lt;a class=&quot;citation&quot; href=&quot;#vanRenesse15:paxo-made&quot;&gt;[6]&lt;/a&gt;).
+&lt;img src=&quot;/img/tikz/fe6d1f2aca843cf14aac67e351dccd27.svg&quot; class=&quot;tikz&quot; /&gt;
+In this execution, we see a single client, \(c_1\) sending a command to the
+system. The leader sends a message to the followers and waits for responses from
+a majority (including itself). Once this is done, the leader executes the
+command, replies to the client, and lets the followers know that a decision has
+been reached and that they can safely execute the command as well.&lt;/p&gt;
+
+&lt;p&gt;Suppose then, that after \(c_1\) receives a response to its command but before
+any of the followers are notified of the decision, \(c_2\) attempts to read
+the state of the replicated state machine. In principle, \(c_2\) is allowed as
+many rounds of communication with a majority of replicas as is necessary. For
+now, let&amp;rsquo;s just consider a single round of communication. \(c_2\) sends the
+query to all replicas and because we would like to tolerate the failure of any
+minority, it only waits for a response from a majority.
+&lt;img src=&quot;/img/tikz/6af6aac01798e74ca04e9f8c395c9f6c.svg&quot; class=&quot;tikz&quot; /&gt;
+Now, suppose that none of the responses it receives comes from the leader
+replica.&lt;/p&gt;
+
+&lt;p&gt;Because \(c_2\) initiated its request &lt;em&gt;after&lt;/em&gt; \(c_1\) got a response, the
+state \(c_2\) reads must reflect \(c_1\)&amp;rsquo;s command. However, as they respond
+to the \(c_2\)&amp;rsquo;s read, none of the followers yet knows that a decision has been
+reached about \(c_1\)&amp;rsquo;s command, even if they do know that there is a decision
+pending. It would seem that the only safe thing for to do in this scenario is to
+wait until a decision on the pending command is reached and to delay a response
+to the read until then. However, that would put us back in the realm where the
+FLP result applies and preclude any hopes of wait-freedom.&lt;/p&gt;
+
+&lt;p&gt;The solution is fairly straightforward. The problem is that the state updates
+are replied to before knowledge of their commitment has reached a majority. So,
+we will delay the response the client until that knowledge has reached a
+majority.
+&lt;img src=&quot;/img/tikz/27717a00a095c6376f91d048eb0499dd.svg&quot; class=&quot;tikz&quot; /&gt;
+The leader waits until a majority executes the command and acknowledges the
+decision before responding.&lt;sup id=&quot;fnref:client-writeback&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:client-writeback&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;3&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;p&gt;We&amp;rsquo;re almost done. You might think that this completely resolves the issue, and
+in the setting we&amp;rsquo;ve described so far in which there are only two clients &amp;ndash; one
+sending updates and the other reading the state &amp;ndash; it does. However, there is a
+subtle problem that arises when there are multiple clients sending reads.
+&lt;img src=&quot;/img/tikz/5b1675873959bb50c4bb25a88e42985c.svg&quot; class=&quot;tikz&quot; /&gt;
+In this example, \(c_3\) is also attempting to read the state of the
+replicated state machine. Here, the result of \(c_1\)&amp;rsquo;s command will be
+visible to \(c_2\) but not to \(c_3\). Since \(c_3\) initiated its read
+after \(c_2\)&amp;rsquo;s already finished, this would be a violation of
+linearizability.&lt;/p&gt;
+
+&lt;p&gt;We solve this issue the same way the ABD register protocol &lt;a class=&quot;citation&quot; href=&quot;#abd&quot;&gt;[7]&lt;/a&gt; does.
+We add a write-back phase to the read protocol, in which the client ensures that
+a majority of the replicas are at least as up-to-date as the state the client
+learned about during the first phase of the read. It distributes any decisions
+which have not yet reached a majority and waits until there is some up-to-date
+majority before considering the read completed.
+&lt;img src=&quot;/img/tikz/870bd0085fc1fa6eacd4d1e71b045d44.svg&quot; class=&quot;tikz&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Of course, if the original majority the client read from all had the same set
+of decisions (or at least all returned the same result if only a subset of the
+state was read), then this second phase can be skipped entirely.&lt;/p&gt;
+
+&lt;p&gt;So, we have two strategies: (1) delaying the client-side completion of updates
+until they&amp;rsquo;re permanently committed at a majority and (2) reading using a
+two-round protocol, the second round of which ensures that a majority is
+up-to-date with the value read. Neither of these strategies is specific to Paxos
+and can be applied to SMR protocols broadly. However, they do present
+trade-offs, as Burke et al. describe.&lt;/p&gt;
+
+&lt;h3&gt;References&lt;/h3&gt;
+&lt;ol class=&quot;acm-bib&quot;&gt;&lt;li&gt;&lt;span id=&quot;burke20-gryf-unif&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Burke, M., Cheng, A. and Lloyd, W.&lt;/span&gt; Gryff: Unifying Consensus and Shared Registers. In &lt;i&gt;17th USENIX Symposium on Networked Systems Design and Implementation (NSDI 20)&lt;/i&gt;. Feb. 2020. 591–617.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;herlihy90:line-corr&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Herlihy, M.P. and Wing, J.M.&lt;/span&gt; Linearizabiliy: A Correctness Condition for Concurrent
+                  Objects. &lt;i&gt;ACM Transactions on Programming Languages and Systems&lt;/i&gt;. 12(3):463–492. Jul. 1990.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;flp&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Fischer, M.J., Lynch, N.A. and Paterson, M.S.&lt;/span&gt; Impossibility of Distributed Consensus with One Faulty Process. &lt;i&gt;J. ACM&lt;/i&gt;. 32(2):374–382. Apr. 1985.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;herlihy91:wait-free&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Herlihy, M.&lt;/span&gt; Wait-Free Synchronization. &lt;i&gt;ACM Trans. Program. Lang. Syst.&lt;/i&gt; 13(1):124–149. Jan. 1991.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;lamport98:part-time&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Lamport, L.&lt;/span&gt; The Part-time Parliament. &lt;i&gt;ACM Transactions on Computer Systems&lt;/i&gt;. 16(2):133–169. May 1998.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;vanRenesse15:paxo-made&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Van Renesse, R. and Altinbuken, D.&lt;/span&gt; Paxos Made Moderately Complex. &lt;i&gt;ACM Comput. Surv.&lt;/i&gt; 47(3):42:1–42:36. Feb. 2015.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;abd&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Attiya, H., Bar-Noy, A. and Dolev, D.&lt;/span&gt; Sharing Memory Robustly in Message-Passing Systems. &lt;i&gt;J. ACM&lt;/i&gt;. 42(1):124–142. Jan. 1995.&lt;/span&gt;&lt;/li&gt;&lt;/ol&gt;
+
+&lt;div class=&quot;footnotes&quot; role=&quot;doc-endnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:pub-exists&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;If this technique has been previously described in the
+literature, I would very much appreciate someone sending me a link!&amp;nbsp;&lt;a href=&quot;#fnref:pub-exists&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+    &lt;li id=&quot;fn:cache&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;Each response will need to be tagged with some sort of version number,
+and the client will have to cache responses locally to enforce the process
+order requirement of serializability.&amp;nbsp;&lt;a href=&quot;#fnref:cache&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+    &lt;li id=&quot;fn:client-writeback&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;The phase added to the update protocol could instead be
+initiated by the client, and the client could wait for acknowledgments to
+the decision before considering the update complete. In the Paxos context,
+having the leader drive this second phase to completion is simpler.&amp;nbsp;&lt;a href=&quot;#fnref:client-writeback&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Mon, 13 Apr 2020 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com/blog/2020/04/13/linearizable-waitfree-reads/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2020/04/13/linearizable-waitfree-reads/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>Randomized Consensus on Unknown Domains in Finite Rounds</title>
+        <description>&lt;p&gt;Warning: This post contains LaTeX rendered with MathJax. It may not render properly in your RSS reader.&lt;/p&gt;&lt;p&gt;The most widely known result in distributed computing is the FLP result that
+proves the impossibility of consensus &lt;a class=&quot;citation&quot; href=&quot;#flp&quot;&gt;[1]&lt;/a&gt;. One of the assumptions of
+this theorem is that processes are &lt;em&gt;deterministic&lt;/em&gt;. When randomness is allowed,
+the Ben-Or algorithm gives simple, elegant way to solve binary consensus &lt;a class=&quot;citation&quot; href=&quot;#ben-or83:anot-adva&quot;&gt;[2]&lt;/a&gt;. Or rather, \(\text{lim}_{t \to \infty} P(\text{consensus
+has been reached}) = 1\). The algorithm goes something like this.&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;a = input({0, 1})
+
+loop:
+  send_phase1(a)
+  A = receive_phase1()
+  if ∃aʹ∈ A : |{a&apos;&apos;∈ A : a&apos;&apos; = a&apos;}| &amp;gt; n/2:
+    b = a&apos;
+  else:
+    b = ⊥
+
+  send_phase2(b)
+  B = receive_phase2()
+  if ∃bʹ∈ B : b&apos; != ⊥ &amp;amp;&amp;amp; |{b&apos;&apos; ∈ B : b&apos;&apos; = b&apos;}| &amp;gt; f:
+    decide(bʹ)
+  if ∃bʹ∈ B : b&apos; != ⊥:
+    a = b&apos;
+  else:
+    a = choose_random({0, 1})
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The algorithm proceeds in asynchronous rounds, each with two phases. In each
+phase, each process broadcasts its value for the phase and then waits for the
+values of \(n - f\) other processes. The safety argument is not complicated,
+and the termination argument is even more straightforward. Eventually the random
+choices made by processes in some round will be overwhelmingly in favor of
+either 0 or 1, and that value will decided by every process in the next round.&lt;/p&gt;
+
+&lt;p&gt;This blog post is a record of a couple simple observations I made when
+re-reading the paper recently (in preparation for teaching it in 
+&lt;a href=&quot;https://courses.cs.washington.edu/courses/cse452/19sp/&quot;&gt;UW&amp;rsquo;s distributed systems course&lt;/a&gt;
+this past quarter) that I couldn&amp;rsquo;t find written up anywhere else.&lt;/p&gt;
+
+&lt;h2&gt;Unknown Domains&lt;/h2&gt;
+
+&lt;p&gt;The first observation is that this algorithm can be modified to allow processes
+to have inputs values from larger domains than \(\{0, 1\}\). In fact, the input
+domain can be infinite. Furthermore, we don&amp;rsquo;t even need the processes to know
+the input domain &lt;em&gt;a priori&lt;/em&gt;. On the very last line of the protocol, when
+processes make a random choice, they simply choose from &lt;em&gt;all values seen so
+far&lt;/em&gt; in any message.&lt;/p&gt;
+
+&lt;p&gt;Since there are at most &lt;em&gt;n&lt;/em&gt; possible input values (because there are at most &lt;em&gt;n&lt;/em&gt;
+processes), the termination argument still applies. The only real difference is
+that termination could take longer. The original paper contained a theorem that
+when \(f\) is \(O(\sqrt{n})\), the expected number of rounds is constant. That
+theorem no longer applies when the set of possible decision values grows with \(n\).&lt;/p&gt;
+
+&lt;p&gt;The other interesting fact is that this protocol can be further modified to
+support a model where not all processes get input values. Processes without
+input values initialize \(a = \bot\) on the first line. And on the last line
+when random choices are made, processes choose from all non-\(\bot\) values
+seen. As long as at least \(f + 1\) processes get input values, termination is
+still guaranteed. Even more interestingly, the check on first-phase messages can
+be refined somewhat in this case. The property that must be maintained is that
+no second-phase messages with different non-\(\bot\) values should exist for the
+same round. So, assuming we get \(n - f\) messages in the second round, if the
+number of messages for one non-\(\bot\) value is more than \(f\) greater
+than for every other non-\(\bot\) value, then we can safely choose that for the
+second phase.&lt;/p&gt;
+
+&lt;p&gt;Both of these modifications are important for the way people use consensus in
+the real world — namely to implement state machine replication. The commands
+proposed to the state machine log often come from an infinite domain and are
+chosen by clients at runtime. The servers implementing the state machine do not
+know which commands will be proposed &lt;em&gt;a priori&lt;/em&gt;. Furthermore, we would like the
+system to make progress even when clients don&amp;rsquo;t send their commands to all
+servers.&lt;/p&gt;
+
+&lt;h2&gt;Finite Rounds&lt;/h2&gt;
+
+&lt;p&gt;The other observation is that the original protocol had all processes taking
+protocol steps and sending messages forever, even after they had decided values.
+This is not necessary. Instead, we can have processes send messages for each
+phase &lt;em&gt;proactively&lt;/em&gt; up until they&amp;rsquo;ve decided a value and the &lt;em&gt;reactively&lt;/em&gt;
+thereafter. That is, once a process has reached a decision, it only sends a
+message for a phase after it has received at least one message for that phase
+(or a later phase).&lt;/p&gt;
+
+&lt;p&gt;Because all non-faulty processes eventually decide a value, eventually all
+processes stop sending messages. Note, however, that this does not mean
+processes can halt. They must continue listening for messages forever (or at
+least \(f+1\) processes must). Eventually, however, they will no longer send any
+new messages.&lt;/p&gt;
+
+&lt;p&gt;When combined the model above where not all processes get input values, we could
+also specify that processes which have not seen any non-\(\bot\) values remain
+in a reactive mode until they receive a non-\(\bot\) value.&lt;/p&gt;
+
+&lt;h3&gt;References&lt;/h3&gt;
+&lt;ol class=&quot;acm-bib&quot;&gt;&lt;li&gt;&lt;span id=&quot;flp&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Fischer, M.J., Lynch, N.A. and Paterson, M.S.&lt;/span&gt; Impossibility of Distributed Consensus with One Faulty Process. &lt;i&gt;J. ACM&lt;/i&gt;. 32(2):374–382. Apr. 1985.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;ben-or83:anot-adva&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Ben-Or, M.&lt;/span&gt; Another Advantage of Free Choice (Extended Abstract): Completely Asynchronous Agreement Protocols. In &lt;i&gt;Proceedings of the Second Annual ACM Symposium on Principles of Distributed Computing&lt;/i&gt;. Montreal, Quebec, Canada. 1983. 27–30.&lt;/span&gt;&lt;/li&gt;&lt;/ol&gt;
+</description>
+        <pubDate>Mon, 10 Jun 2019 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com/blog/2019/06/10/randomized-consensus/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2019/06/10/randomized-consensus/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>Understanding Traces</title>
+        <description>&lt;p&gt;Warning: This post contains LaTeX rendered with MathJax. It may not render properly in your RSS reader.&lt;/p&gt;&lt;p&gt;For &lt;a href=&quot;https://github.com/emichael/dslabs&quot;&gt;DSLabs&lt;/a&gt;, one of the pieces I built was a 
+&lt;a href=&quot;https://github.com/emichael/dslabs/blob/409be9bb71dc0844f24f502d658a47bf1bd9715b/framework/tst/dslabs/framework/testing/search/SearchState.java#L329&quot;&gt;post-processing phase&lt;/a&gt; that runs on traces generated by the
+model checker. It takes a trace (i.e., a list of events) and produces a
+semantically equivalent trace which is, hopefully, more understandable to
+humans.&lt;/p&gt;
+
+&lt;p&gt;To motivate the problem, lets look at an example. Suppose we have a distributed
+system with four processes &amp;mdash; \(p_1\), \(p_2\), \(p_3\), and \(p_4\),
+and consider the events represented by the following space-time diagram:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/tikz/d4df8b5866db57366e979b530d98ea40.svg&quot; class=&quot;tikz&quot; style=&quot;width: 300px;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Because there are &lt;em&gt;concurrent&lt;/em&gt; events (i.e., events not ordered by the
+happens-before relation) in the above execution, there is more than one way to
+represent these events as a well-formed trace.&lt;sup id=&quot;fnref:num-traces&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:num-traces&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; Here, a well-formed
+trace is one in which the happens-before relation is respected by the ordering
+of events. However, not all traces are created equal. Without knowing the
+specifics of the protocol being run in this execution, I think most people, if
+asked to produce a trace, would write something like this:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;\(p_1\) sends \(m_1\) to \(p_2\)&lt;/li&gt;
+  &lt;li&gt;\(p_2\) receives \(m_1\), sends \(m_2\) to \(p_1\)&lt;/li&gt;
+  &lt;li&gt;\(p_1\) receives \(m_2\), sends \(m_3\) to \(p_2\)&lt;/li&gt;
+  &lt;li&gt;\(p_2\) receives \(m_3\)&lt;/li&gt;
+  &lt;li&gt;\(p_3\) sends \(m_4\) to \(p_4\)&lt;/li&gt;
+  &lt;li&gt;\(p_4\) receives \(m_4\), sends \(m_5\) to \(p_3\)&lt;/li&gt;
+  &lt;li&gt;\(p_3\) receives \(m_5\), sends \(m_6\) to \(p_4\)&lt;/li&gt;
+  &lt;li&gt;\(p_4\) receives \(m_6\)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;They might, instead, pair up \(m_1\) and \(m_4\), \(m_2\) and \(m_5\),
+and \(m_3\) and \(m_6\). But they certainly wouldn&amp;rsquo;t write down the
+following:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;\(p_1\) sends \(m_1\) to \(p_2\)&lt;/li&gt;
+  &lt;li&gt;\(p_3\) sends \(m_4\) to \(p_4\)&lt;/li&gt;
+  &lt;li&gt;\(p_2\) receives \(m_1\), sends \(m_2\) to \(p_1\)&lt;/li&gt;
+  &lt;li&gt;\(p_1\) receives \(m_2\), sends \(m_3\) to \(p_2\)&lt;/li&gt;
+  &lt;li&gt;\(p_4\) receives \(m_4\), sends \(m_5\) to \(p_3\)&lt;/li&gt;
+  &lt;li&gt;\(p_2\) receives \(m_3\)&lt;/li&gt;
+  &lt;li&gt;\(p_3\) receives \(m_5\), sends \(m_6\) to \(p_4\)&lt;/li&gt;
+  &lt;li&gt;\(p_4\) receives \(m_6\)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Not just that, but the latter trace is also harder to follow as a reader. It has
+several unnecessary &amp;ldquo;context switches.&amp;rdquo; The DSLabs model checker, however, does
+not distinguish between these two traces; they both have the same length. If an
+invariant was violated upon completion of the execution in question, the
+concurrent events in the trace produced by the model checker would be randomly
+ordered.&lt;/p&gt;
+
+&lt;p&gt;The post-processing phase I implemented is based on a simple idea, that events
+in traces should be followed by their immediate consequences. First, I took the
+trace produced by the model checker and built up the associated event graph. The
+event graph looks just like the space-time diagram above. Vertices are events;
+edges go between corresponding &lt;em&gt;send&lt;/em&gt; and &lt;em&gt;receive&lt;/em&gt; events and between
+subsequent events at the same process.&lt;/p&gt;
+
+&lt;p&gt;Then, I ran a depth-first topological sort of the event graph. By topologically
+sorting the graph, we get a well-formed trace. By doing it in a depth-first
+manner, we list events and their immediate consequences whenever possible.&lt;/p&gt;
+
+&lt;p&gt;To see what this looks like in practice, let&amp;rsquo;s look at an example from the
+primary-backup lab. First, we show an animated trace demonstrating an
+invariant-violation in a buggy solution.&lt;/p&gt;
+
+&lt;video controls=&quot;&quot; loop=&quot;loop&quot; preload=&quot;metadata&quot;&gt;
+  &lt;source src=&quot;/img/posts/understanding-traces/ugly-trace.webm#t=0.1&quot; type=&quot;video/webm&quot; /&gt;
+  &lt;source src=&quot;/img/posts/understanding-traces/ugly-trace.mp4#t=0.1&quot; type=&quot;video/mp4&quot; /&gt;
+&lt;/video&gt;
+
+&lt;p&gt;Next, let&amp;rsquo;s see what the same invariant-violation looks with the post-processing
+phase for understandability.&lt;/p&gt;
+
+&lt;video controls=&quot;&quot; loop=&quot;loop&quot; preload=&quot;metadata&quot;&gt;
+  &lt;source src=&quot;/img/posts/understanding-traces/good-trace.webm#t=0.1&quot; type=&quot;video/webm&quot; /&gt;
+  &lt;source src=&quot;/img/posts/understanding-traces/good-trace.mp4#t=0.1&quot; type=&quot;video/mp4&quot; /&gt;
+&lt;/video&gt;
+
+&lt;p&gt;Of course, you can&amp;rsquo;t necessarily follow what&amp;rsquo;s going on without knowing the
+details of the protocol. But, it should be much easier to follow the &amp;ldquo;flow&amp;rdquo; of
+the second video.&lt;/p&gt;
+
+&lt;p&gt;There are many possibilities for further improvement. You could bias the sorting
+of events towards message delivery or towards staying with the same process. You
+could even try to recognize group communication patterns (e.g., the
+&amp;ldquo;one→all→one&amp;rdquo; pattern) and order them in particular ways. For now, though, I think this solution works quite well.&lt;/p&gt;
+
+&lt;div class=&quot;footnotes&quot; role=&quot;doc-endnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:num-traces&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;In fact, there are 20 such traces.&amp;nbsp;&lt;a href=&quot;#fnref:num-traces&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Mon, 18 Feb 2019 00:00:00 -0800</pubDate>
+        <link>https://ellismichael.com/blog/2019/02/18/understanding-traces/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2019/02/18/understanding-traces/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>Producers and Consumers</title>
+        <description>&lt;p&gt;Warning: This post contains LaTeX rendered with MathJax. It may not render properly in your RSS reader.&lt;/p&gt;&lt;p&gt;At a recent talk of Leslie Lamport, he raised the question of how many possible executions there are for a bounded-buffer producer-consumer protocol for a given set of input values.
+Leslie&amp;rsquo;s point was that, from the standpoint of the values produced and consumed, there is only one execution, and the only things that we can say about the ordering of these events is that a value must be produced before it is consumed and that before a value can be produced, enough values must have been consumed so that there is room in the buffer.&lt;/p&gt;
+
+&lt;p&gt;I started wondering, though, just how many executions are there exactly?
+For a given buffer size and length of execution, how many possible (legal) sequences of produce and consume events are possible?
+Equivalently, how many strings of \(P\)s and \(C\)s of a given length are there such that the number of \(C\)s in any prefix is less than or equal to the number of \(P\)s and the number of \(P\)s minus the number of \(C\)s in any prefix is less than or equal to the buffer size?
+Writing down the recurrence for the general case is easy enough, and computers are very fast and good with numbers, so let&amp;rsquo;s see a few results.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;functools&lt;/span&gt;
+
+&lt;span class=&quot;o&quot;&gt;@&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;functools&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lru_cache&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;maxsize&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;B&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;U&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;U&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;U&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;B&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;B&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;U&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;B&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;U&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here, \(B\) is the size of the buffer, \(S\) is the number of steps in the execution, and \(U\) is the number of used slots in the buffer (initially 0).&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;15&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;When the buffer size is 1, there only ever one execution, no matter how many steps we take.
+It&amp;rsquo;s just the \(S\)-length prefix of the infinite \(PCPCPCPCPC...\) string.
+What about when the buffer size is 2?&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;15&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;128&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here, we see once-repeated increasing powers of 2.
+To see why this is the case, imagine the state of the buffer.
+When it&amp;rsquo;s empty or full, there is only one action that can be taken, a produce or consume, respectively.
+On the other hand, when there is a single value in the buffer, both actions are possible.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/tikz/4147538e228d27ec2d6fa9aa7cb0555d.svg&quot; class=&quot;tikz&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Now, given both of those results, try to guess what the sequence looks like when \(B = 3\).&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;15&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;13&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;21&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;34&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;55&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;89&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;144&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;233&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;377&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;610&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Did you guess the Fibonacci sequence?
+This one&amp;rsquo;s a little harder to see.
+It&amp;rsquo;s not obvious (to me at least) why the Fibonacci recurrence should apply.
+If \(f(3, i)\) is the number of executions possible with exactly \(i\) steps with a buffer of size 3, let&amp;rsquo;s let \(f_{0, 3}(3, i)\) be the number of those executions where the final state of the buffer is full or empty.
+Then, let \(f_{1, 2}(3, i)\) be the number of executions ending in the buffer having 1 or 2 values.
+First, we have the obvious identity.&lt;/p&gt;
+
+\[f(3, i) = f_{0, 4}(3, i) + f_{1, 2}(3, i)\]
+
+&lt;p&gt;Then, we have a pair of recurrences that are easiest to see pictorially.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/tikz/7a4dadb06a942bc92d9345757c23a284.svg&quot; class=&quot;tikz&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Namely, the following:&lt;/p&gt;
+
+\[f_{0, 4}(3, i) = f_{1, 2}(3, i - 1)\]
+
+\[f_{1, 2}(3, i) = f_{0, 4}(3, i - 1) + f_{1, 2}(3, i - 1)\]
+
+&lt;p&gt;Then, the derivation is straightforward.&lt;/p&gt;
+
+\[\begin{align*}
+f(3, i) &amp;amp;= f_{0, 4}(3, i) + f_{1, 2}(3, i) \\
+        &amp;amp;= f_{0, 4}(3, i - 1) + 2 f_{1, 2}(3, i - 1) \\
+        &amp;amp;= f(3, i - 1) + f_{1, 2}(3, i - 1) \\
+        &amp;amp;= f(3, i - 1) + f_{0, 4}(3, i - 2) + f_{1, 2}(3, i - 2) \\
+        &amp;amp;= f(3, i - 1) + f(3, i - 2)
+\end{align*}\]
+
+&lt;p&gt;Finally, let&amp;rsquo;s see what happens when the buffer is unbounded (by setting the size of the buffer to the number of steps in the execution).&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;15&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;35&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;70&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;126&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;252&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;462&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;924&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1716&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3432&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here, we see a different sequence.
+The number of possible executions with \(i\) steps is \({i \choose \lfloor i / 2 \rfloor}\).
+Let \(X\) be set of \(i\)-length \(P/C\) sequences with exactly \(\left \lfloor \frac{i}{2} \right \rfloor\)  \(C\)s (some of which represent invalid executions) and let \(Y\) be the set of valid sequences.&lt;/p&gt;
+
+&lt;p&gt;First, given a sequence in \(X\), we can transform it into a valid sequence in \(Y\) by scanning left to right, keeping track the number of values in the buffer.
+If a \(C\) is invalid (i.e., would result in the number of values in the buffer becoming negative), we change it to a \(P\) and &lt;em&gt;treat it as a null operation on the buffer&lt;/em&gt; (i.e., neither a \(C\) nor a \(P\)).
+So, \(CPCCPPPP\) would become \(PPCPPPPP\).
+Then, to invert that transformation, we count the number of \(P\)s that should be transformed to \(C\)s and then repeatedly scan from right to left, replacing a \(P\) with  a \(C\) every time doing so would cause the sequence to become invalid, treating the new \(C\) as neither a \(P\) nor \(C\) for the remainder of the operation.
+Here are these two transformations in Python.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;t&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;pc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;&apos;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;xi&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;xi&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;C&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;P&apos;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;xi&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;xi&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;P&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;pc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;pc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;ti&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;list&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&apos;P&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;pi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ci&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;C&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;ci&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;P&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;pi&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+
+                &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ci&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+                    &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;X&apos;&lt;/span&gt;
+                    &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&apos;C&apos;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;yi&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;X&apos;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;yi&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;yi&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Since these transformations are, indeed, inverses of each other, we get
+\(|X| = |Y|\).&lt;/p&gt;
+
+&lt;p&gt;Of course, none of the above observations are new, and some/all are simple enough to be put to undergraduates in a discrete math course.
+Typically, these problems would be put in terms of the number of sequences of 1 and -1 where the partial sums are all nonnegative and less than some bound.
+I just liked that you could describe interesting combinatorics problems in terms of a common synchronization primitive.&lt;/p&gt;
+
+&lt;p&gt;Furthermore, there are still more interesting sequences for different values of \(B\).
+For instance, when \(B = 4\), we get:&lt;/p&gt;
+
+\[f(4, i) = \begin{cases}
+1 &amp;amp; i = 0 \\
+3^{\frac{i - 1}{2}} &amp;amp; \text{$i$ odd} \\
+2 \cdot 3^{\frac{i}{2} - 1} &amp;amp; \text{$i$ even}, i \ne 0
+\end{cases}\]
+
+&lt;p&gt;If anyone knows a closed-form expression for \(f (B, S)\), I would be grateful.&lt;/p&gt;
+
+&lt;h3&gt;Acknowledgments&lt;/h3&gt;
+&lt;p&gt;Thanks to &lt;a href=&quot;https://homes.cs.washington.edu/~helgi/&quot;&gt;Helgi&lt;/a&gt; for pointing out a bug in an earlier version of my &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;t(x)&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ti(y)&lt;/code&gt; functions.&lt;/p&gt;
+</description>
+        <pubDate>Mon, 27 Aug 2018 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com/blog/2018/08/27/num-executions-producers-consumers/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2018/08/27/num-executions-producers-consumers/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>A Game of Thrones</title>
+        <description>&lt;p&gt;Warning: This post contains LaTeX rendered with MathJax. It may not render properly in your RSS reader.&lt;/p&gt;&lt;p&gt;Suppose you&amp;rsquo;re the ruler of a vast empire, composed of \(k\) kingdoms.
+As emperor, you&amp;rsquo;ve decided that who sits on each throne is too important to be left up to random things like birth order; you&amp;rsquo;d like to manage the succession to each throne personally.
+You don&amp;rsquo;t want to be bothered each time a king or queen dies, however.
+You are emperor, after all.&lt;/p&gt;
+
+&lt;p&gt;Instead, you decide that you will handpick the line of succession for each of the \(k\) thrones.
+These succession orders will be valid until \(f\) nobles sitting on or in line to a throne die, at which point you will revisit the succession question and design a new chart.
+There is one caveat, however: you do not want any of the kingdoms to be consolidated.
+None of your vassals should sit on two thrones simultaneously.&lt;/p&gt;
+
+&lt;p&gt;Let \(n\) be the number of your vassals you consider worthy of sitting on one of your empire&amp;rsquo;s thrones.
+We&amp;rsquo;d like to answer the following question:
+how large must \(n\) be to support lines of succession for \(k\) thrones such that no king or queen will ever sit on two thrones even if \(f\) nobles in those succession lines die?&lt;/p&gt;
+
+&lt;p&gt;In order to have a suitable succession chart, what you need to come up with is a matrix:&lt;/p&gt;
+
+\[%--------------------
+% PREAMBLE
+%--------------------
+\require{cancel}
+\require{color}
+
+\renewcommand\CancelColor{\color{blue}}
+
+\newcommand{\ullabeld}[3]{ {\scriptstyle #3} \left \{
+  \vphantom{#1}\smash{\overbrace{#1}^{#2}}
+  \right.
+  \vphantom{\overbrace{#1}^#2}
+}
+%--------------------
+% END PREAMBLE
+%--------------------
+
+\ullabeld{\begin{matrix}
+  \nu_{1,1} &amp;amp; \nu_{1,2} &amp;amp; \cdots &amp;amp; \nu_{1,k} \\
+  \nu_{2,1} &amp;amp; \nu_{2,2} &amp;amp; \cdots &amp;amp; \nu_{2,k} \\
+  \vdots \\
+  \nu_{f+1,1} &amp;amp; \nu_{f+1,2} &amp;amp; \cdots &amp;amp; \nu_{f+1,k}
+\end{matrix}}{k}{f+1}\]
+
+&lt;p&gt;where \(\nu_{i,j}\) is the \(i\)th in line to the \(k\)th throne (the 1st in line currently sits on the throne).
+For a given \(j\), each of the \(\nu_{i, j}\) must be unique.
+This matrix also needs to have the special property that if up to \(f\) of the nobles you appoint die, none of your vassals occupies two thrones simultaneously.&lt;/p&gt;
+
+&lt;p&gt;For instance, a succession setup for \(k=3\), \(f=3\) of the following form is not admissible under the previous condition.&lt;/p&gt;
+
+\[\begin{matrix}
+  a &amp;amp; b &amp;amp; c \\
+  d &amp;amp; e &amp;amp; f  \\
+  g &amp;amp; d &amp;amp; h \\
+  i &amp;amp; j &amp;amp; k \\
+\end{matrix}\]
+
+&lt;p&gt;If the following 3 nobles died, then \(d\) would sit on two thrones at the same time.&lt;/p&gt;
+
+\[\begin{matrix}
+  \xcancel{a} &amp;amp; \xcancel{b} &amp;amp; c \\
+  d &amp;amp; \xcancel{e} &amp;amp; f  \\
+  g &amp;amp; d &amp;amp; h \\
+  i &amp;amp; j &amp;amp; k \\
+\end{matrix}\]
+
+&lt;p&gt;With the groundwork laid, we&amp;rsquo;re ready to start tackling the problem of how large \(n\) must be to support an admissible succession plan for any given \(k\) and \(f\).
+The first thing to notice is that none of your vassals currently sitting on a throne can be in the line of succession for any other throne; otherwise, if the \(f\) nobles ahead of them in the other line of succession died, they&amp;rsquo;d sit on two thrones simultaneously.&lt;/p&gt;
+
+\[\begin{matrix}
+  v_1 &amp;amp; \xcancel{\cdot} \\
+  \cdot &amp;amp; \xcancel{\cdot} \\
+  \cdot &amp;amp; \xcancel{\cdot} \\
+  \vdots \\
+  \cdot &amp;amp; v_1 \\
+\end{matrix}\]
+
+&lt;p&gt;So, the picture we have so far looks like this:&lt;/p&gt;
+
+\[\begin{matrix}
+  v_1 &amp;amp; v_2 &amp;amp; v_3 &amp;amp; \cdots &amp;amp; v_k \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \vdots \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+\end{matrix}\]
+
+&lt;p&gt;The next thing to notice is that any second-in-line noble can occupy any of the last-in-line positions to any other throne but no higher position.&lt;/p&gt;
+
+\[\begin{matrix}
+  v_1 &amp;amp; v_2 &amp;amp; v_3 &amp;amp; \cdots &amp;amp; v_k \\
+  v_{k+1} &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \vdots \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \cdot &amp;amp; v_{k+1} &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+\end{matrix}\]
+
+&lt;p&gt;In fact, a second-in-line noble can occupy &lt;em&gt;all&lt;/em&gt; of the other last-in-line positions.&lt;/p&gt;
+
+\[\begin{matrix}
+  v_1 &amp;amp; v_2 &amp;amp; v_3 &amp;amp; \cdots &amp;amp; v_k \\
+  v_{k+1} &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \vdots \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \cdot &amp;amp; v_{k+1} &amp;amp; v_{k+1} &amp;amp; \cdots &amp;amp; v_{k+1} \\
+\end{matrix}\]
+
+&lt;p&gt;But, we need at least \(k\) second-in-line nobles, so we might as well distribute the other positions equally.&lt;/p&gt;
+
+\[\begin{matrix}
+  v_1 &amp;amp; v_2 &amp;amp; v_3 &amp;amp; \cdots &amp;amp; v_k \\
+  v_{k+1} &amp;amp; v_{k+2} &amp;amp; v_{k+3} &amp;amp; \cdots &amp;amp; v_{2k} \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  \vdots \\
+  \cdot &amp;amp; \cdot &amp;amp; \cdot &amp;amp; \cdots &amp;amp; \cdot \\
+  v_{2k} &amp;amp; v_{k+1} &amp;amp; v_{k+2} &amp;amp; \cdots &amp;amp; v_{2k -1} \\
+\end{matrix}\]
+
+&lt;p&gt;Similarly, a third-in-line noble can be second-to-last in another line of succession but no higher.&lt;/p&gt;
+
+\[\begin{matrix}
+  v_1 &amp;amp; v_2 &amp;amp; v_3 &amp;amp; \cdots &amp;amp; v_k \\
+  v_{k+1} &amp;amp; v_{k+2} &amp;amp; v_{k+3} &amp;amp; \cdots &amp;amp; v_{2k} \\
+  v_{2k+1} &amp;amp; v_{2k+2} &amp;amp; v_{2k+3} &amp;amp; \cdots &amp;amp; v_{3k} \\
+  \vdots \\
+  v_{3k} &amp;amp; v_{2k+1} &amp;amp; v_{2k+2} &amp;amp; \cdots &amp;amp; v_{3k -1} \\
+  v_{2k} &amp;amp; v_{k+1} &amp;amp; v_{k+2} &amp;amp; \cdots &amp;amp; v_{2k -1} \\
+\end{matrix}\]
+
+&lt;p&gt;This trend continues until we get to the &amp;ldquo;middle&amp;rdquo; row (the \(\left \lceil \frac{f}{2} \right \rceil + 1\) row). If \(f\) is even, then this is the exact same situation as the above.
+Nobles in these positions in the lines of successions can also occupy the position directly below this one in another line of succession but cannot simultaneously occupy any positions on the same row or higher.
+However, if \(f\) is odd, a single noble can simultaneously occupy &lt;em&gt;all&lt;/em&gt; positions in this row, since \(2 \left \lceil \frac{f}{2} \right \rceil &amp;gt; f\).&lt;/p&gt;
+
+&lt;p&gt;This brings us finally to a lower bound on a value of \(n\), as well as a plan for what the lines of succession could look like when the bound is tight.&lt;/p&gt;
+
+\[n \ge \begin{cases}
+k\left (\frac{f}{2} + 1 \right ) &amp;amp; \text{$f$ even} \\
+k \left (\left \lfloor \frac{f}{2} \right \rfloor + 1 \right ) + 1 &amp;amp; \text{$f$ odd}
+\end{cases}\]
+</description>
+        <pubDate>Fri, 12 Jan 2018 00:00:00 -0800</pubDate>
+        <link>https://ellismichael.com/blog/2018/01/12/a-game-of-thrones/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2018/01/12/a-game-of-thrones/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>On Ink Shortages</title>
+        <description>&lt;p&gt;In the original presentation of the Paxos algorithm, Lamport used an extended metaphor involving the legislators of a bygone civilization &lt;a class=&quot;citation&quot; href=&quot;#lamport98:part-time&quot;&gt;[1]&lt;/a&gt;.
+These legislators would communicate by messenger and pass (non-contradictory) laws.
+One of the key assumptions of this protocol was that the legislators had special ledgers they carried around and could write on with &lt;em&gt;indelible ink&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;This is my (almost certainly misguided) attempt at an allegorical explanation of our recent work on diskless recovery in distributed systems &lt;a class=&quot;citation&quot; href=&quot;#recovering-disc17&quot;&gt;[2]&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Naxos&lt;/h2&gt;
+
+&lt;p&gt;Having recently undertaken a long archaeological study of my own, I discovered that, shortly after its development, the parliamentary protocol used on Paxos spread throughout the region and was adopted by other parliaments (curiously, always with a few tweaks and always with a letter or two prepended to the name &amp;ldquo;Paxos&amp;rdquo;).&lt;/p&gt;
+
+&lt;p&gt;The protocol eventually spread to the the far-away (though similarly-named) island of Naxos.
+The Naxons, however, were not as wealthy as the Paxons and could not afford the vast quantities of expensive indelible ink the Paxon legislators used to record their decrees.
+(All other available inks had a tendency to fade over time and were thus unsuitable for parliamentary business.) However, Naxon legislators&amp;mdash;out of necessity&amp;mdash;had prodigious memories, and when they committed to a promise during the legislative process, they did not forget it.&lt;/p&gt;
+
+&lt;p&gt;At first, the Naxon legislators used the multi-decree Paxos protocol without issue.
+This protocol worked perfectly well for a number of years, until the first time a Naxon legislator was replaced.
+The Naxon parliament had no term limits, and incumbents almost always won (thanks to massive campaign contributions from the olive oil industry), but when a challenger finally won election for the first time, something happened that had never happened before&amp;mdash;the parliament passed contradictory laws.&lt;/p&gt;
+
+&lt;h2&gt;The Incident&lt;/h2&gt;
+
+&lt;p&gt;As per parliamentary procedure, Naxon legislators used each other&amp;rsquo;s official titles to conduct all business (e.g., the gentleman from Σεαττλε).
+While the aforementioned election was ongoing, the MP from Μουνταιν Ϝιεω attempted to pass a law making Λεσλιε the cheese inspector for the coming year.
+Μουνταιν Ϝιεω&amp;rsquo;s representative was able to secure votes for this decree from a majority of legislators&amp;mdash;including an MP who was about to be replaced, the MP from Βοστον.&lt;/p&gt;
+
+&lt;p&gt;However, this process of gathering votes took quite a bit of time and lasted well past the election.
+After he was elected, the new legislator from Βοστον proposed a decree making Βαρβαρα the cheese inspector for the coming year, which was also able to pass.
+As you can imagine, this led to some controversy.&lt;/p&gt;
+
+&lt;p&gt;The Naxon political scientists were not complete neophytes and knew about the potential for problems when new legislators were elected; they had designed a procedure specifically to handle this process.
+Because this procedure had to work in the case of the death of an MP, the Naxon protocol could not rely on the ability of a newly elected legislator to learn all previous decisions from the former legislator of their district.
+The political scientists, therefore, decided that newly elected legislators would, upon election, contact a majority of the parliament to learn about previously agreed-to decrees and adopted ballots.&lt;/p&gt;
+
+&lt;p&gt;The problem arose during the passing of the decree to make Λεσλιε cheese inspector.
+The decree&amp;rsquo;s sponsor rightly reckoned that the old MP from Βοστον might be soon replaced, and so sent the vote request to him via express courier.
+While waiting for replies from the other legislators, the election happened, and the representative from Βοστον was replaced.
+The new Βοστον MP was able to learn about all new decrees from a majority &lt;em&gt;before any in that majority received the request to make Λεσλιε cheese inspector.&lt;/em&gt; 
+The representative from Μουνταιν Ϝιεω was away at his villa and did not learn about the election results but did receive the remaining votes for his decree.
+At this point, he had received votes from a majority of districts to make Λεσλιε cheese inspector, but it was not true at that moment that a majority of legislators in the current parliament knew about this decree.
+Thus, the new MP from Βοστον was able to also make Βαρβαρα cheese inspector (using a majority that did not know about the previous decision).&lt;/p&gt;
+
+&lt;h2&gt;The Solution&lt;/h2&gt;
+
+&lt;p&gt;At first, the Naxon political scientists blamed the inconsistency on corruption; members of the political elite in Naxos had a habit of taking vacations in Byzantium&amp;mdash;to the Naxons, a clear sign of moral bankruptcy.
+However, they eventually spotted the problem and came up with a solution.&lt;/p&gt;
+
+&lt;p&gt;The Naxon parliament needed a way to distinguish different representatives from the same district.
+They decided to refer to each legislator by their district name and the year in which the legislator was first elected (e.g., the gentleman from Σεαττλε, first elected in the year 453).&lt;sup id=&quot;fnref:1&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; &lt;sup id=&quot;fnref:2&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:2&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;2&lt;/a&gt;&lt;/sup&gt; Then, in all of their messages to each other, the legislators included their current belief about the composition of the parliament.
+ (I assume that the Naxons had a shorthand way of expressing this, but that particular detail has been lost to history.)&lt;/p&gt;
+
+&lt;p&gt;This procedure ensured that the cheese inspector incident could never happen again.
+Any legislator attempting to pass a decree while an election was ongoing would learn about any new legislators elected thanks to the added information attached to each parliamentary message (or the decree would complete before the new legislator could become an active member of parliament).
+In the example above, the Μουνταιν Ϝιεω representative would have found out that the incumbent from Βοστον had been replaced.
+When this happened, under the new rules, the Μουνταιν Ϝιεω MP would have to contact the &lt;em&gt;new&lt;/em&gt; representative from the district before considering that district&amp;rsquo;s vote as counting towards a majority.&lt;/p&gt;
+
+&lt;p&gt;There is archaeological evidence to suggest that the Naxons realized this process of assembling majorities and replacing legislators could be used for other civic procedures, ones with weaker requirements than their law-making process, but exactly what procedures they did invent, we cannot say for sure.&lt;/p&gt;
+
+&lt;h2&gt;How Paxos Solved the Succession Problem&lt;/h2&gt;
+
+&lt;p&gt;On Paxos, thanks to their permanent ledgers and indelible ink, the succession problem was solved much more simply.
+A new legislator would be given at the start of their term the ledger of their predecessor and would continue on with the protocol as normal.&lt;/p&gt;
+
+&lt;h3&gt;References&lt;/h3&gt;
+&lt;ol class=&quot;acm-bib&quot;&gt;&lt;li&gt;&lt;span id=&quot;lamport98:part-time&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Lamport, L.&lt;/span&gt; The Part-time Parliament. &lt;i&gt;ACM Transactions on Computer Systems&lt;/i&gt;. 16(2):133–169. May 1998.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;recovering-disc17&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Michael, E., Ports, D.R.K., Sharma, N.K. and Szekeres, A.&lt;/span&gt; Recovering Shared Objects Without Stable Storage. In &lt;i&gt;Proceedings of the 31st International Symposium on
+                  Distributed Computing (DISC ’17)&lt;/i&gt;. Vienna, Austria. Oct. 2017.&lt;/span&gt;&lt;/li&gt;&lt;/ol&gt;
+
+&lt;div class=&quot;footnotes&quot; role=&quot;doc-endnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:1&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;The Naxon parliament could have, instead, referred to each member using their unique names, but they preferred to stand on more ceremony rather than less.&amp;nbsp;&lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+    &lt;li id=&quot;fn:2&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;Importantly, any legislator serving non-consecutive terms was referred to by the year of election for their current consecutive tenure.&amp;nbsp;&lt;a href=&quot;#fnref:2&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Fri, 20 Oct 2017 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com/blog/2017/10/20/on-ink-shortages/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2017/10/20/on-ink-shortages/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>Raft is (Equivalent to) Paxos, VR</title>
+        <description>&lt;p&gt;Warning: This post contains LaTeX rendered with MathJax. It may not render properly in your RSS reader.&lt;/p&gt;&lt;p&gt;I shouldn&amp;rsquo;t have to write this blog post, but one too many times have I received
+online comments, questions at conferences, and even paper reviews claiming that
+Raft is more efficient than Paxos. This is not the case; as Ongaro and
+Ousterhout note, &lt;strong&gt;Raft, VR, and Paxos are equivalent in efficiency&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;p&gt;While the original Paxos protocol was rather concise in its description &lt;a class=&quot;citation&quot; href=&quot;#lamport98:part-time&quot;&gt;[1]&lt;/a&gt;, it can be easily modified into a full-featured state
+machine replication implementation. These modifications have been described in
+many places (e.g., &amp;ldquo;Paxos Made Live&amp;rdquo; &lt;a class=&quot;citation&quot; href=&quot;#chandra07:paxo-made&quot;&gt;[2]&lt;/a&gt;). The normal
+case operation of Paxos is visualized and described below:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/posts/raft-equivalency/paxos.svg&quot; alt=&quot;Paxos Algorithm&quot; /&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;The client sends its command, \(c\), to the current leader.&lt;/li&gt;
+  &lt;li&gt;The leader proposes \(c\) in the latest unfilled slot in its log, sending the
+proposal to the other replicas.&lt;/li&gt;
+  &lt;li&gt;The replicas put \(c\) into the same slot in their logs and respond to the
+leader.&lt;/li&gt;
+  &lt;li&gt;The leader waits for a majority of replicas (including itself) to respond and
+then executes the command and responds to the client with the result.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Viewstamped Replication (VR) was developed at the same time as Paxos &lt;a class=&quot;citation&quot; href=&quot;#oki88:view-repl&quot;&gt;[3, 4]&lt;/a&gt;. While VR includes some practical details
+left out of the original Paxos papers, the core mechanism it uses is the same as
+Paxos.&lt;sup id=&quot;fnref:paxos-vr-diff&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:paxos-vr-diff&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; Moreover, the normal case protocol is exactly the same as
+described above, and its performance is identical.&lt;/p&gt;
+
+&lt;p&gt;Raft was published much later, in an effort to be more understandable than the
+existing descriptions of Paxos and VR &lt;a class=&quot;citation&quot; href=&quot;#ongaro14:in-sear&quot;&gt;[5]&lt;/a&gt;, and the Raft
+protocol is almost identical to VR.&lt;sup id=&quot;fnref:raft-vr-diff&quot; role=&quot;doc-noteref&quot;&gt;&lt;a href=&quot;#fn:raft-vr-diff&quot; class=&quot;footnote&quot; rel=&quot;footnote&quot;&gt;2&lt;/a&gt;&lt;/sup&gt; Its normal case operation is
+&lt;em&gt;also exactly the same as described above&lt;/em&gt;. In terms of message delays, number
+of messages sent and received, and amount of computation needed in the normal
+case, &lt;strong&gt;Raft has no performance benefits compared to VR or a full-featured Paxos
+implementation&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;h3&gt;References&lt;/h3&gt;
+&lt;ol class=&quot;acm-bib&quot;&gt;&lt;li&gt;&lt;span id=&quot;lamport98:part-time&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Lamport, L.&lt;/span&gt; The Part-time Parliament. &lt;i&gt;ACM Transactions on Computer Systems&lt;/i&gt;. 16(2):133–169. May 1998.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;chandra07:paxo-made&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Chandra, T.D., Griesemer, R. and Redstone, J.&lt;/span&gt; Paxos Made Live: An Engineering Perspective. In &lt;i&gt;Proceedings of the Twenty-sixth Annual ACM Symposium on Principles of Distributed Computing&lt;/i&gt;. Portland, Oregon, USA. 2007. 398–407.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;oki88:view-repl&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Oki, B.M. and Liskov, B.H.&lt;/span&gt; Viewstamped Replication: A New Primary Copy Method to
+                   Support Highly-Available Distributed Systems. In &lt;i&gt;Proceedings of the 7th ACM Symposium on
+                   Principles of Distributed Computing (PODC
+                   ’88)&lt;/i&gt;. Toronto, Canada. Aug. 1988.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;liskov12:view-repl&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Liskov, B. and Cowling, J.&lt;/span&gt; &lt;i&gt;Viewstamped Replication Revisited&lt;/i&gt;. Technical Report MIT-CSAIL-TR-2012-021. MIT Computer Science and Artificial Intelligence
+                   Laboratory.&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;ongaro14:in-sear&quot;&gt;&lt;span style=&quot;font-variant: small-caps&quot;&gt;Ongaro, D. and Ousterhout, J.&lt;/span&gt; In Search of an Understandable Consensus Algorithm. In &lt;i&gt;Proceedings of the 2014 USENIX Annual Technical Conference&lt;/i&gt;. Philadelphia, PA. 2014. 305–320.&lt;/span&gt;&lt;/li&gt;&lt;/ol&gt;
+
+&lt;div class=&quot;footnotes&quot; role=&quot;doc-endnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:paxos-vr-diff&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;There is a slight difference between VR and Paxos in the way
+that invariants are guaranteed across leader elections, but it does not
+affect the normal case operations of the protocols.&amp;nbsp;&lt;a href=&quot;#fnref:paxos-vr-diff&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+    &lt;li id=&quot;fn:raft-vr-diff&quot; role=&quot;doc-endnote&quot;&gt;
+      &lt;p&gt;The differences between Raft and VR are detailed in the Raft
+paper &lt;a class=&quot;citation&quot; href=&quot;#ongaro14:in-sear&quot;&gt;[5]&lt;/a&gt;.&amp;nbsp;&lt;a href=&quot;#fnref:raft-vr-diff&quot; class=&quot;reversefootnote&quot; role=&quot;doc-backlink&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Tue, 28 Feb 2017 00:00:00 -0800</pubDate>
+        <link>https://ellismichael.com/blog/2017/02/28/raft-equivalency/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2017/02/28/raft-equivalency/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>Quines as a Side-channel</title>
+        <description>&lt;p&gt;I recently competed in &lt;a href=&quot;https://icec.tf/&quot;&gt;IceCTF&lt;/a&gt;, and two of my favorite problems were
+about quines. A quine is a program which prints its own source code; the term
+was coined by Douglas Hofstadter in his (excellent) book, &lt;em&gt;Göedel, Escher,
+Bach&lt;/em&gt;.&lt;/p&gt;
+
+&lt;h2&gt;The Problem&lt;/h2&gt;
+
+&lt;p&gt;The quine problems involved finding a vulnerability in a service (run on a
+remote machine) which accepted a C source file as input and repeatedly compiled
+the source file, ran the program, and overwrote the source file with the
+program&amp;rsquo;s output. After some number of iterations the server would return the
+resulting source code, provided some conditions held (more on that below).&lt;/p&gt;
+
+&lt;p&gt;In their purest form, quines should not take any input. For example, the
+following Python one-liner is considered &amp;ldquo;cheating&amp;rdquo;:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__file__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;end&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;However, pure quines are quite useless for the purposes of a CTF competition. If
+the quine service had only returned one bit of information, whether or not the
+input program was a &lt;em&gt;true&lt;/em&gt; quine, then it would have been safe from the attack
+we used. However, the C programs the server ran could read from files, and the
+user the programs were run by had permissions to read &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/flag.txt&lt;/code&gt;, the file
+whose contents we were supposed to exfiltrate.&lt;/p&gt;
+
+&lt;p&gt;In the first version of the quine problem, which sent programs through exactly
+20 iterations, I had the idea of simply wrapping a target program with layers of
+print statements. To illustrate, I&amp;rsquo;ll do this in Python. Consider the following
+target program:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&apos;/flag.txt&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;If we wanted this program to be run during the final iteration and there were 5
+iterations, we would wrap it in 4 print statements like so:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;print(&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;print(&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\\&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;print(&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\\\\\\&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;print(open(&apos;/flag.txt&apos;).read())&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\\\\\\&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\\&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;)&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;This approach didn&amp;rsquo;t work. The service spit out an error, complaining about
+source files not matching. We took this to mean that the service would only
+print out the final source file &lt;em&gt;if it matched the input source file&lt;/em&gt;. In other
+words, we assumed that we would only get one bit of information out: &lt;strong&gt;quine or
+no quine&lt;/strong&gt;. This turned out not to be the case, but I like the solution we came
+up with better than the intended one.&lt;/p&gt;
+
+&lt;h2&gt;The Attack&lt;/h2&gt;
+
+&lt;p&gt;Since we&amp;rsquo;re assuming that the server only returns the &lt;strong&gt;quine or no quine&lt;/strong&gt; bit,
+the key insight is that if the programs being run can take some input, then we
+can create programs which are quines if and only if some condition holds.&lt;/p&gt;
+
+&lt;p&gt;I started with the following C quine, which I found on
+&lt;a href=&quot;http://stackoverflow.com/questions/10238670/c-c-program-that-prints-its-own-source-code-as-its-output#answer-10240050&quot;&gt;Stack Overflow&lt;/a&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;#include &amp;lt;stdio.h&amp;gt;%cchar*s=%c%s%c;%cint main(void){printf(s,10,34,s,34,10,10);}%c&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;34&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;34&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;How does it work? The critical bit is the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;%s&lt;/code&gt; inside &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;s&lt;/code&gt;. This allows the
+program to print &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;s&lt;/code&gt; using a copy of itself. The other trick is that it uses
+code points to print out characters that need escaping. (Try representing
+newlines as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;\n&lt;/code&gt; inside &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;s&lt;/code&gt; and removing all the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;10&lt;/code&gt;s from the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;printf&lt;/code&gt;
+arguments, and you&amp;rsquo;ll see what goes wrong.)&lt;/p&gt;
+
+&lt;p&gt;Using that basic quine as a starting point, I came up with this generator in
+Python which creates C quines based on some function, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;test&lt;/code&gt; (passed to
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gen_quine&lt;/code&gt; as a string):&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;TO_REPLACE&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n\r\&quot;\&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;code_point&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ord&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;strip_normal_chars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TO_REPLACE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;gen_codepoints&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cps&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;,&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;code_point&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;strip_normal_chars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;cps&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;,&apos;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cps&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;gen_char_s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&apos;&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&apos;%c&apos;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TO_REPLACE&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;gen_quine&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;#include &amp;lt;stdio.h&amp;gt;
+#include &amp;lt;stdlib.h&amp;gt;
+%s
+char*s=&quot;#include &amp;lt;stdio.h&amp;gt;%%c#include &amp;lt;stdlib.h&amp;gt;%%c%s%%cchar*s=%%c%%s%%c;%%cint main(void){if(!test()){exit(1);}printf(s,10,10,%s10,34,s,34,10,10);}%%c&quot;;
+int main(void){if(!test()){exit(1);}printf(s,10,10,%s10,34,s,34,10,10);}
+&quot;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+         &lt;span class=&quot;n&quot;&gt;gen_char_s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+         &lt;span class=&quot;n&quot;&gt;gen_codepoints&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; 
+         &lt;span class=&quot;n&quot;&gt;gen_codepoints&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;For example &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gen_quine(&quot;int test() {return 1;}&quot;)&lt;/code&gt; returns:&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;}&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;#include &amp;lt;stdio.h&amp;gt;%c#include &amp;lt;stdlib.h&amp;gt;%cint test() {return 1;}%cchar*s=%c%s%c;%cint main(void){if(!test()){exit(1);}printf(s,10,10,10,34,s,34,10,10);}%c&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()){&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);}&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;34&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;34&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;This is a pure quine.&lt;/p&gt;
+
+&lt;p&gt;I&amp;rsquo;ll leave you to figure out the fine points of the generator. There&amp;rsquo;s no real
+insight, just some fiddling with details. The point is that using it, we can
+generate arbitrary (pseudo-)quines! We then used that generator with the
+following function:&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cp&quot;&gt;#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;unistd.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#include&lt;/span&gt; &lt;span class=&quot;cpf&quot;&gt;&amp;lt;fcntl.h&amp;gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fd&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/flag.txt&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;O_RDONLY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;pread&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;sc&quot;&gt;&apos;I&apos;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;It worked! The server told us that the generated program was, indeed, a quine.
+(An important fact here is that all flags had the format &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IceCTF{...}&lt;/code&gt;.) From
+there, all we had to do was loop through each bit of the flag and test it. Since
+all of the flags were less than 80 characters long, this took less than 640
+requests to the server (640 separate quines to checks). Not too bad.&lt;/p&gt;
+
+&lt;h2&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;Was arbitrary (pseudo-)quine generation necessary? Well, no. It turned out that
+the server printing out the final source code was important, and the problems
+could have been solved in a single request. But our way was more fun.&lt;/p&gt;
+
+&lt;p&gt;Moral of the story: if you&amp;rsquo;re ever building QCaaS (Quine Checking as a Service),
+be careful. You might be returning more information than you think.&lt;/p&gt;
+
+</description>
+        <pubDate>Fri, 02 Sep 2016 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com/blog/2016/09/02/quines-as-a-side-channel/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2016/09/02/quines-as-a-side-channel/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+      <item>
+        <title>Using Travis CI with Github Pages</title>
+        <description>&lt;p&gt;I&amp;rsquo;ve been using &lt;a href=&quot;https://pages.github.com/&quot;&gt;GitHub Pages&lt;/a&gt; for my personal website for some time
+now. Since I&amp;rsquo;ve never needed dynamic content, GitHub has been a perfect
+solution. It&amp;rsquo;s simple to use and free. GitHub will either serve a completely
+static site or a &lt;a href=&quot;http://jekyllrb.com/&quot;&gt;Jekyll&lt;/a&gt; site, which it automatically generates.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://travis-ci.org/&quot;&gt;Travis CI&lt;/a&gt; is a popular testing and deployment service. You can use it
+to generate and deploy your website to GitHub Pages instead of using GitHub&amp;rsquo;s
+automatic Jekyll generator.&lt;/p&gt;
+
+&lt;h2&gt;Why use Travis?&lt;/h2&gt;
+&lt;p&gt;Most of the time, using Travis is not necessary. Vanilla Jekyll works quite well
+and has most of the features that you&amp;rsquo;d want out of a static site generator.
+However, GitHub Pages only allows the use of a
+&lt;a href=&quot;https://help.github.com/articles/using-jekyll-plugins-with-github-pages/&quot;&gt;limited number of Jekyll plugins&lt;/a&gt; and runs Jekyll builds in
+&lt;a href=&quot;http://jekyllrb.com/docs/configuration/&quot;&gt;safe mode&lt;/a&gt;. If you want to use Jekyll plugins other than the ones
+available on GitHub Pages, use your own custom plugins, or generate parts of
+your site by non-Jekyll means, then you should consider using Travis to
+automatically do the job.&lt;/p&gt;
+
+&lt;p&gt;My original impetus for switching to Travis was that I wanted the generation
+process for my website to generate my resume automatically, which gets built
+from a YAML file using LaTeX and a &lt;a href=&quot;https://github.com/emichael/emichael.github.io&quot;&gt;Python script&lt;/a&gt;. However, now
+that I&amp;rsquo;m free from GitHub Pages&amp;rsquo; limitations, I&amp;rsquo;m considering switching from
+Jekyll to &lt;a href=&quot;http://blog.getpelican.com/&quot;&gt;Pelican&lt;/a&gt; because I like Jinja templates better than Liquid.&lt;/p&gt;
+
+&lt;h2&gt;Making the Switch&lt;/h2&gt;
+&lt;p&gt;The first thing you need to do is create a new branch, as the generated site
+will eventually get put into the GitHub Pages branch (either &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gh-pages&lt;/code&gt; or
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;master&lt;/code&gt; depending on the type of repo). Call the new branch &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;source&lt;/code&gt; (or maybe
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pages-source&lt;/code&gt; if you prefer).&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;git checkout &lt;span class=&quot;nt&quot;&gt;-b&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;source&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Next, you&amp;rsquo;ll want to enable Travis for the repo. You can do so
+&lt;a href=&quot;https://travis-ci.org/profile&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;You should then create a file called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.travis.yml&lt;/code&gt; in the root of your
+repository in the new &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;source&lt;/code&gt; branch.&lt;/p&gt;
+
+&lt;h3&gt;Configuring Travis&lt;/h3&gt;
+&lt;p&gt;Your &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.travis.yml&lt;/code&gt; file tells Travis what to do. You&amp;rsquo;ll use it to install your
+site&amp;rsquo;s dependencies, build your site, and then push the generated site back to
+GitHub.&lt;/p&gt;
+
+&lt;h4&gt;Authenticating Travis with GitHub&lt;/h4&gt;
+&lt;p&gt;In order for Travis to be able to push your site to GitHub, it will need to
+authenticate with GitHub. Travis has built in encryption tools which allow you
+to encrypt some secret which only the Travis build agent for your repo will be
+able to decrypt. Then, you can upload the encrypted secret to a public repo
+without fear that you&amp;rsquo;re giving everyone access they shouldn&amp;rsquo;t have.&lt;/p&gt;
+
+&lt;p&gt;Some people have suggested using an encrypted GitHub Personal Access Token. This
+is a decent solution, but the problem is that the permissions settings for
+access tokens are too coarse. They only allow you to determine whether or not
+the token has access to &lt;em&gt;all&lt;/em&gt; your public repos and &lt;em&gt;all&lt;/em&gt; your private repos.
+Instead, a better solution is using a deploy key on the repository. If that key
+somehow gets compromised, the most anyone will have access to is a single repo.&lt;/p&gt;
+
+&lt;p&gt;First, you&amp;rsquo;ll have to generate the key.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ssh-keygen
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Name the file &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.travisdeploykey&lt;/code&gt; and do not put a password on the key. Upload
+the public key (in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.travisdeploykey.pub&lt;/code&gt;) to your repo (Settings &amp;gt; Deploy
+keys). Now, encrypt the private key. You&amp;rsquo;ll need the Travis client installed to
+do that.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;gem &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;travis
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Then, encrypt the file.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;travis encrypt-file .travisdeploykey
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This will output the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.travisdeploykey.enc&lt;/code&gt; file and print out a command to be
+added to the build script. Save that print out and add &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.travisdeploykey.enc&lt;/code&gt; to
+your repo. Do &lt;em&gt;NOT&lt;/em&gt; add the unencrypted private key to the repo. If you already
+did, remove the public key from the repo, and start over with a new key. If not,
+you can go ahead and delete the private key as well as the public key.&lt;/p&gt;
+
+&lt;h4&gt;The Build Script&lt;/h4&gt;
+&lt;p&gt;Copy the following to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.travis.yml&lt;/code&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;na&quot;&gt;install&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gem install jekyll&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;before_script&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;# Replace with the line that travis encrypt-file printed out&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;openssl aes-256-cbc ...&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;chmod go-rwx .travisdeploykey&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;eval `ssh-agent -s`&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;ssh-add .travisdeploykey&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;git config user.name &quot;Travis-CI&quot;&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;git config user.email &quot;noreply@travis-ci.org&quot;&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;COMMIT_MESSAGE=&quot;Publishing site on `date &quot;+%Y-%m-%d %H:%M:%S&quot;` from&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;`git log -n 1 --format=&apos;commit %h - %s&apos;`&quot;&lt;/span&gt;
+
+&lt;span class=&quot;na&quot;&gt;script&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;set -e&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;make&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Or jekyll build or whatever command you use to generate your site&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;git checkout -b master&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Replace master with gh-pages if applicable&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;git add -f _site/&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Replace _site/ with the build&apos;s output directory&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&apos;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;git&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;commit&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;-m&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;${COMMIT_MESSAGE}&quot;&apos;&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;git filter-branch -f --subdirectory-filter _site/&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Again, replace _site/&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;# Obviously, replace with your repo&apos;s SSH URL and the appropriate branch&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;git push -f YOUR_REPOS_SSH_URL master:master&lt;/span&gt;
+
+&lt;span class=&quot;na&quot;&gt;branches&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;only&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;source&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;If you have any other dependencies to install (e.g. Python packages), you should
+add the necessary commands under &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;install&lt;/code&gt;. Otherwise, once you make the
+appropriate adjustments to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.travis.yml&lt;/code&gt;, you should be good to go!&lt;/p&gt;
+
+&lt;h2&gt;Final Notes&lt;/h2&gt;
+&lt;p&gt;Caveat user: debugging your install script and adding all of the dependencies
+can be a somewhat frustrating process, especially if the dependencies take a
+while to install. You might find yourself making a change, pushing that change
+to the repo to kick off a Travis build, and then waiting 5 minutes only to find
+out that something else went wrong.&lt;/p&gt;
+
+&lt;p&gt;Now that you&amp;rsquo;re building your site with Travis, you don&amp;rsquo;t need GitHub to build
+it with it&amp;rsquo;s built-in Jekyll support. By default, GitHub will only invoke Jekyll
+if there is a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_config.yml&lt;/code&gt; file present, but if you want, you can go one step
+further and add a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.nojekyll&lt;/code&gt; file to the site. If you&amp;rsquo;re still using Jekyll,
+then you&amp;rsquo;ll need to add the following to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_config.yml&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;na&quot;&gt;include&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;.nojekyll&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+</description>
+        <pubDate>Fri, 12 Jun 2015 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com/blog/2015/06/12/using-travis-ci-with-github-pages/</link>
+        <guid isPermaLink="true">https://ellismichael.com/blog/2015/06/12/using-travis-ci-with-github-pages/</guid>
+        
+        
+            <category>technical</category>
+        
+      </item>
+    
+    
+      <item>
+        <title>NOPaxos to Appear in OSDI</title>
+        <description>Our paper on eliminating Paxos overhead with network support will appear at
+&lt;a href=&quot;https://www.usenix.org/conference/osdi16/program&quot;&gt;OSDI 2016&lt;/a&gt; in
+Savannah, GA.
+</description>
+        <pubDate>Sun, 31 Jul 2016 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2016-07-31NOPaxos to Appear in OSDI</guid>
+      </item>
+    
+      <item>
+        <title>Diskless Distributed Recovery</title>
+        <description>Our
+&lt;a href=&quot;https://www.cs.washington.edu/tr/2016/08/UW-CSE-16-08-02.pdf&quot;&gt;paper&lt;/a&gt;
+on providing stable storage for the Diskless Crash-Recovery failure model is
+now available.
+</description>
+        <pubDate>Thu, 25 Aug 2016 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2016-08-25Diskless Distributed Recovery</guid>
+      </item>
+    
+      <item>
+        <title>NOPaxos Madrona Prize Runner-Up</title>
+        <description>NOPaxos was recognized at UW CSE&apos;s annual industrial affiliates open house
+by &lt;a href=&quot;http://www.madrona.com/&quot;&gt;Madrona Venture Group&lt;/a&gt; for its
+start-up potential. See the full post on
+&lt;a href=&quot;https://news.cs.washington.edu/2016/10/20/madrona-and-uw-cse-recognize-student-innovation/&quot;&gt;CSE news&lt;/a&gt;.
+</description>
+        <pubDate>Wed, 19 Oct 2016 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2016-10-19NOPaxos Madrona Prize Runner-Up</guid>
+      </item>
+    
+      <item>
+        <title>NOPaxos Featured on The Morning Paper</title>
+        <description>NOPaxos was featured on
+&lt;a href=&quot;https://blog.acolyer.org/2016/12/08/just-say-no-to-paxos-overhead-replacing-consensus-with-network-ordering/&quot;&gt;The Morning Paper&lt;/a&gt;
+blog, with a good write-up of the paper&apos;s main contributions.
+</description>
+        <pubDate>Thu, 08 Dec 2016 00:00:00 -0800</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2016-12-08NOPaxos Featured on The Morning Paper</guid>
+      </item>
+    
+      <item>
+        <title>NOPaxos Recognized at Industry-Academia Partnership Cloud Workshop</title>
+        <description>More recognition for NOPaxos. It was awarded the Best Poster Award at the
+&lt;a
+href=&quot;http://www.industry-academia.org/event-university-of-washington-cloud-workshop-2017.html&quot;&gt;Industry-Academia
+Partnership Cloud Workshop&lt;/a&gt; at UW.
+</description>
+        <pubDate>Fri, 31 Mar 2017 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2017-03-31NOPaxos Recognized at Industry-Academia Partnership Cloud Workshop</guid>
+      </item>
+    
+      <item>
+        <title>NOPaxos Source Code Available</title>
+        <description>The &lt;a href=&quot;https://github.com/UWSysLab/NOPaxos&quot;&gt;source code&lt;/a&gt; for
+NOPaxos is now available.
+</description>
+        <pubDate>Mon, 08 May 2017 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2017-05-08NOPaxos Source Code Available</guid>
+      </item>
+    
+      <item>
+        <title>Diskless Recovery at DISC 2017</title>
+        <description>Our paper on diskless distributed recovery has been selected to appear at &lt;a
+href=&quot;http://www.disc-conference.org/wp/disc2017/accepted-papers/&quot;&gt;DISC
+2017&lt;/a&gt;.
+</description>
+        <pubDate>Sat, 01 Jul 2017 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2017-07-01Diskless Recovery at DISC 2017</guid>
+      </item>
+    
+      <item>
+        <title>Eris at SOSP 2017</title>
+        <description>Eris, our network-integrated distributed transaction processing system, will
+appear at &lt;a href=&quot;https://www.sigops.org/sosp/sosp17/&quot;&gt;SOSP 2017&lt;/a&gt; in
+Shanghai, China.
+</description>
+        <pubDate>Fri, 04 Aug 2017 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2017-08-04Eris at SOSP 2017</guid>
+      </item>
+    
+      <item>
+        <title>Eris Source Code Available</title>
+        <description>The &lt;a href=&quot;https://github.com/UWSysLab/Eris&quot;&gt;source code&lt;/a&gt; for Eris, our
+network-integrated distributed transaction processing protocol, is now
+available.
+</description>
+        <pubDate>Wed, 07 Mar 2018 00:00:00 -0800</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2018-03-07Eris Source Code Available</guid>
+      </item>
+    
+      <item>
+        <title>PaPoC Workshop Talk</title>
+        <description>I recently attended &lt;a href=&quot;https://papoc-workshop.github.io/2018/&quot;&gt;PaPoC
+&apos;18&lt;/a&gt; and presented our &lt;a href=&quot;https://syslab.cs.washington.edu/papers
+/tcdn-papoc18.pdf&quot;&gt;short paper&lt;/a&gt; on providing efficient causal message
+delivery in datacenters using programmable network hardware.
+</description>
+        <pubDate>Fri, 27 Apr 2018 00:00:00 -0700</pubDate>
+        <link>https://ellismichael.com</link>
+        <guid>2018-04-27PaPoC Workshop Talk</guid>
+      </item>
+    
+  </channel>
+</rss>

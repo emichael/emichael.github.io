@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>Using Travis CI with Github Pages</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2015/06/12/using-travis-ci-with-github-pages/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>Using Travis CI with Github Pages</h1>
+  
+  <p class="date">12 Jun 2015</p>
+
+  <p>I&rsquo;ve been using <a href="https://pages.github.com/">GitHub Pages</a> for my personal website for some time
+now. Since I&rsquo;ve never needed dynamic content, GitHub has been a perfect
+solution. It&rsquo;s simple to use and free. GitHub will either serve a completely
+static site or a <a href="http://jekyllrb.com/">Jekyll</a> site, which it automatically generates.</p>
+
+<p><a href="https://travis-ci.org/">Travis CI</a> is a popular testing and deployment service. You can use it
+to generate and deploy your website to GitHub Pages instead of using GitHub&rsquo;s
+automatic Jekyll generator.</p>
+
+<h2>Why use Travis?</h2>
+<p>Most of the time, using Travis is not necessary. Vanilla Jekyll works quite well
+and has most of the features that you&rsquo;d want out of a static site generator.
+However, GitHub Pages only allows the use of a
+<a href="https://help.github.com/articles/using-jekyll-plugins-with-github-pages/">limited number of Jekyll plugins</a> and runs Jekyll builds in
+<a href="http://jekyllrb.com/docs/configuration/">safe mode</a>. If you want to use Jekyll plugins other than the ones
+available on GitHub Pages, use your own custom plugins, or generate parts of
+your site by non-Jekyll means, then you should consider using Travis to
+automatically do the job.</p>
+
+<p>My original impetus for switching to Travis was that I wanted the generation
+process for my website to generate my resume automatically, which gets built
+from a YAML file using LaTeX and a <a href="https://github.com/emichael/emichael.github.io">Python script</a>. However, now
+that I&rsquo;m free from GitHub Pages&rsquo; limitations, I&rsquo;m considering switching from
+Jekyll to <a href="http://blog.getpelican.com/">Pelican</a> because I like Jinja templates better than Liquid.</p>
+
+<h2>Making the Switch</h2>
+<p>The first thing you need to do is create a new branch, as the generated site
+will eventually get put into the GitHub Pages branch (either <code class="language-plaintext highlighter-rouge">gh-pages</code> or
+<code class="language-plaintext highlighter-rouge">master</code> depending on the type of repo). Call the new branch <code class="language-plaintext highlighter-rouge">source</code> (or maybe
+<code class="language-plaintext highlighter-rouge">pages-source</code> if you prefer).</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>git checkout <span class="nt">-b</span> <span class="nb">source</span>
+</code></pre></div></div>
+
+<p>Next, you&rsquo;ll want to enable Travis for the repo. You can do so
+<a href="https://travis-ci.org/profile">here</a>.</p>
+
+<p>You should then create a file called <code class="language-plaintext highlighter-rouge">.travis.yml</code> in the root of your
+repository in the new <code class="language-plaintext highlighter-rouge">source</code> branch.</p>
+
+<h3>Configuring Travis</h3>
+<p>Your <code class="language-plaintext highlighter-rouge">.travis.yml</code> file tells Travis what to do. You&rsquo;ll use it to install your
+site&rsquo;s dependencies, build your site, and then push the generated site back to
+GitHub.</p>
+
+<h4>Authenticating Travis with GitHub</h4>
+<p>In order for Travis to be able to push your site to GitHub, it will need to
+authenticate with GitHub. Travis has built in encryption tools which allow you
+to encrypt some secret which only the Travis build agent for your repo will be
+able to decrypt. Then, you can upload the encrypted secret to a public repo
+without fear that you&rsquo;re giving everyone access they shouldn&rsquo;t have.</p>
+
+<p>Some people have suggested using an encrypted GitHub Personal Access Token. This
+is a decent solution, but the problem is that the permissions settings for
+access tokens are too coarse. They only allow you to determine whether or not
+the token has access to <em>all</em> your public repos and <em>all</em> your private repos.
+Instead, a better solution is using a deploy key on the repository. If that key
+somehow gets compromised, the most anyone will have access to is a single repo.</p>
+
+<p>First, you&rsquo;ll have to generate the key.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ssh-keygen
+</code></pre></div></div>
+<p>Name the file <code class="language-plaintext highlighter-rouge">.travisdeploykey</code> and do not put a password on the key. Upload
+the public key (in <code class="language-plaintext highlighter-rouge">.travisdeploykey.pub</code>) to your repo (Settings &gt; Deploy
+keys). Now, encrypt the private key. You&rsquo;ll need the Travis client installed to
+do that.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>gem <span class="nb">install </span>travis
+</code></pre></div></div>
+
+<p>Then, encrypt the file.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>travis encrypt-file .travisdeploykey
+</code></pre></div></div>
+
+<p>This will output the <code class="language-plaintext highlighter-rouge">.travisdeploykey.enc</code> file and print out a command to be
+added to the build script. Save that print out and add <code class="language-plaintext highlighter-rouge">.travisdeploykey.enc</code> to
+your repo. Do <em>NOT</em> add the unencrypted private key to the repo. If you already
+did, remove the public key from the repo, and start over with a new key. If not,
+you can go ahead and delete the private key as well as the public key.</p>
+
+<h4>The Build Script</h4>
+<p>Copy the following to <code class="language-plaintext highlighter-rouge">.travis.yml</code></p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">install</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="s">gem install jekyll</span>
+<span class="na">before_script</span><span class="pi">:</span>
+  <span class="c1"># Replace with the line that travis encrypt-file printed out</span>
+  <span class="pi">-</span> <span class="s">openssl aes-256-cbc ...</span>
+  <span class="pi">-</span> <span class="s">chmod go-rwx .travisdeploykey</span>
+  <span class="pi">-</span> <span class="s">eval `ssh-agent -s`</span>
+  <span class="pi">-</span> <span class="s">ssh-add .travisdeploykey</span>
+  <span class="pi">-</span> <span class="s">git config user.name "Travis-CI"</span>
+  <span class="pi">-</span> <span class="s">git config user.email "noreply@travis-ci.org"</span>
+  <span class="pi">-</span> <span class="s">COMMIT_MESSAGE="Publishing site on `date "+%Y-%m-%d %H:%M:%S"` from</span>
+    <span class="s">`git log -n 1 --format='commit %h - %s'`"</span>
+
+<span class="na">script</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="s">set -e</span>
+  <span class="pi">-</span> <span class="s">make</span> <span class="c1"># Or jekyll build or whatever command you use to generate your site</span>
+  <span class="pi">-</span> <span class="s">git checkout -b master</span> <span class="c1"># Replace master with gh-pages if applicable</span>
+  <span class="pi">-</span> <span class="s">git add -f _site/</span> <span class="c1"># Replace _site/ with the build's output directory</span>
+  <span class="pi">-</span> <span class="s1">'</span><span class="s">git</span><span class="nv"> </span><span class="s">commit</span><span class="nv"> </span><span class="s">-m</span><span class="nv"> </span><span class="s">"${COMMIT_MESSAGE}"'</span>
+  <span class="pi">-</span> <span class="s">git filter-branch -f --subdirectory-filter _site/</span> <span class="c1"># Again, replace _site/</span>
+  <span class="c1"># Obviously, replace with your repo's SSH URL and the appropriate branch</span>
+  <span class="pi">-</span> <span class="s">git push -f YOUR_REPOS_SSH_URL master:master</span>
+
+<span class="na">branches</span><span class="pi">:</span>
+  <span class="na">only</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s">source</span>
+</code></pre></div></div>
+<p>If you have any other dependencies to install (e.g. Python packages), you should
+add the necessary commands under <code class="language-plaintext highlighter-rouge">install</code>. Otherwise, once you make the
+appropriate adjustments to <code class="language-plaintext highlighter-rouge">.travis.yml</code>, you should be good to go!</p>
+
+<h2>Final Notes</h2>
+<p>Caveat user: debugging your install script and adding all of the dependencies
+can be a somewhat frustrating process, especially if the dependencies take a
+while to install. You might find yourself making a change, pushing that change
+to the repo to kick off a Travis build, and then waiting 5 minutes only to find
+out that something else went wrong.</p>
+
+<p>Now that you&rsquo;re building your site with Travis, you don&rsquo;t need GitHub to build
+it with it&rsquo;s built-in Jekyll support. By default, GitHub will only invoke Jekyll
+if there is a <code class="language-plaintext highlighter-rouge">_config.yml</code> file present, but if you want, you can go one step
+further and add a <code class="language-plaintext highlighter-rouge">.nojekyll</code> file to the site. If you&rsquo;re still using Jekyll,
+then you&rsquo;ll need to add the following to <code class="language-plaintext highlighter-rouge">_config.yml</code>.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">include</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="s">.nojekyll</span>
+</code></pre></div></div>
+
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+</body>
+</html>

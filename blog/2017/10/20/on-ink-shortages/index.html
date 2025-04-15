@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>On Ink Shortages</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2017/10/20/on-ink-shortages/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>On Ink Shortages</h1>
+  
+  <p class="date">20 Oct 2017</p>
+
+  <p>In the original presentation of the Paxos algorithm, Lamport used an extended metaphor involving the legislators of a bygone civilization <a class="citation" href="#lamport98:part-time">[1]</a>.
+These legislators would communicate by messenger and pass (non-contradictory) laws.
+One of the key assumptions of this protocol was that the legislators had special ledgers they carried around and could write on with <em>indelible ink</em>.</p>
+
+<p>This is my (almost certainly misguided) attempt at an allegorical explanation of our recent work on diskless recovery in distributed systems <a class="citation" href="#recovering-disc17">[2]</a>.</p>
+
+<h2>Naxos</h2>
+
+<p>Having recently undertaken a long archaeological study of my own, I discovered that, shortly after its development, the parliamentary protocol used on Paxos spread throughout the region and was adopted by other parliaments (curiously, always with a few tweaks and always with a letter or two prepended to the name &ldquo;Paxos&rdquo;).</p>
+
+<p>The protocol eventually spread to the the far-away (though similarly-named) island of Naxos.
+The Naxons, however, were not as wealthy as the Paxons and could not afford the vast quantities of expensive indelible ink the Paxon legislators used to record their decrees.
+(All other available inks had a tendency to fade over time and were thus unsuitable for parliamentary business.) However, Naxon legislators&mdash;out of necessity&mdash;had prodigious memories, and when they committed to a promise during the legislative process, they did not forget it.</p>
+
+<p>At first, the Naxon legislators used the multi-decree Paxos protocol without issue.
+This protocol worked perfectly well for a number of years, until the first time a Naxon legislator was replaced.
+The Naxon parliament had no term limits, and incumbents almost always won (thanks to massive campaign contributions from the olive oil industry), but when a challenger finally won election for the first time, something happened that had never happened before&mdash;the parliament passed contradictory laws.</p>
+
+<h2>The Incident</h2>
+
+<p>As per parliamentary procedure, Naxon legislators used each other&rsquo;s official titles to conduct all business (e.g., the gentleman from Σεαττλε).
+While the aforementioned election was ongoing, the MP from Μουνταιν Ϝιεω attempted to pass a law making Λεσλιε the cheese inspector for the coming year.
+Μουνταιν Ϝιεω&rsquo;s representative was able to secure votes for this decree from a majority of legislators&mdash;including an MP who was about to be replaced, the MP from Βοστον.</p>
+
+<p>However, this process of gathering votes took quite a bit of time and lasted well past the election.
+After he was elected, the new legislator from Βοστον proposed a decree making Βαρβαρα the cheese inspector for the coming year, which was also able to pass.
+As you can imagine, this led to some controversy.</p>
+
+<p>The Naxon political scientists were not complete neophytes and knew about the potential for problems when new legislators were elected; they had designed a procedure specifically to handle this process.
+Because this procedure had to work in the case of the death of an MP, the Naxon protocol could not rely on the ability of a newly elected legislator to learn all previous decisions from the former legislator of their district.
+The political scientists, therefore, decided that newly elected legislators would, upon election, contact a majority of the parliament to learn about previously agreed-to decrees and adopted ballots.</p>
+
+<p>The problem arose during the passing of the decree to make Λεσλιε cheese inspector.
+The decree&rsquo;s sponsor rightly reckoned that the old MP from Βοστον might be soon replaced, and so sent the vote request to him via express courier.
+While waiting for replies from the other legislators, the election happened, and the representative from Βοστον was replaced.
+The new Βοστον MP was able to learn about all new decrees from a majority <em>before any in that majority received the request to make Λεσλιε cheese inspector.</em> 
+The representative from Μουνταιν Ϝιεω was away at his villa and did not learn about the election results but did receive the remaining votes for his decree.
+At this point, he had received votes from a majority of districts to make Λεσλιε cheese inspector, but it was not true at that moment that a majority of legislators in the current parliament knew about this decree.
+Thus, the new MP from Βοστον was able to also make Βαρβαρα cheese inspector (using a majority that did not know about the previous decision).</p>
+
+<h2>The Solution</h2>
+
+<p>At first, the Naxon political scientists blamed the inconsistency on corruption; members of the political elite in Naxos had a habit of taking vacations in Byzantium&mdash;to the Naxons, a clear sign of moral bankruptcy.
+However, they eventually spotted the problem and came up with a solution.</p>
+
+<p>The Naxon parliament needed a way to distinguish different representatives from the same district.
+They decided to refer to each legislator by their district name and the year in which the legislator was first elected (e.g., the gentleman from Σεαττλε, first elected in the year 453).<sup id="fnref:1" role="doc-noteref"><a href="#fn:1" class="footnote" rel="footnote">1</a></sup> <sup id="fnref:2" role="doc-noteref"><a href="#fn:2" class="footnote" rel="footnote">2</a></sup> Then, in all of their messages to each other, the legislators included their current belief about the composition of the parliament.
+ (I assume that the Naxons had a shorthand way of expressing this, but that particular detail has been lost to history.)</p>
+
+<p>This procedure ensured that the cheese inspector incident could never happen again.
+Any legislator attempting to pass a decree while an election was ongoing would learn about any new legislators elected thanks to the added information attached to each parliamentary message (or the decree would complete before the new legislator could become an active member of parliament).
+In the example above, the Μουνταιν Ϝιεω representative would have found out that the incumbent from Βοστον had been replaced.
+When this happened, under the new rules, the Μουνταιν Ϝιεω MP would have to contact the <em>new</em> representative from the district before considering that district&rsquo;s vote as counting towards a majority.</p>
+
+<p>There is archaeological evidence to suggest that the Naxons realized this process of assembling majorities and replacing legislators could be used for other civic procedures, ones with weaker requirements than their law-making process, but exactly what procedures they did invent, we cannot say for sure.</p>
+
+<h2>How Paxos Solved the Succession Problem</h2>
+
+<p>On Paxos, thanks to their permanent ledgers and indelible ink, the succession problem was solved much more simply.
+A new legislator would be given at the start of their term the ledger of their predecessor and would continue on with the protocol as normal.</p>
+
+<h3>References</h3>
+<ol class="acm-bib"><li><span id="lamport98:part-time"><span style="font-variant: small-caps">Lamport, L.</span> The Part-time Parliament. <i>ACM Transactions on Computer Systems</i>. 16(2):133–169. May 1998.</span></li>
+<li><span id="recovering-disc17"><span style="font-variant: small-caps">Michael, E., Ports, D.R.K., Sharma, N.K. and Szekeres, A.</span> Recovering Shared Objects Without Stable Storage. In <i>Proceedings of the 31st International Symposium on
+                  Distributed Computing (DISC ’17)</i>. Vienna, Austria. Oct. 2017.</span></li></ol>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:1" role="doc-endnote">
+      <p>The Naxon parliament could have, instead, referred to each member using their unique names, but they preferred to stand on more ceremony rather than less.&nbsp;<a href="#fnref:1" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:2" role="doc-endnote">
+      <p>Importantly, any legislator serving non-consecutive terms was referred to by the year of election for their current consecutive tenure.&nbsp;<a href="#fnref:2" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+</body>
+</html>

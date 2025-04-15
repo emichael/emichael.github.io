@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>Search For Course Builder</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2013/08/14/search-for-course-builder/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>Search For Course Builder</h1>
+  
+    <p class="subtitle">A Google Intern's Tale</p>
+  
+  <p class="date">14 Aug 2013</p>
+
+  <h2>Who I Am</h2>
+<p>I am a software engineering intern at Google on the
+<a href="https://code.google.com/p/course-builder/">Course Builder</a> team. I attend the <a href="http://utexas.edu/">University of Texas at
+Austin</a>, pursuing degrees in computer science and the
+<a href="http://www.utexas.edu/cola/progs/plan2/">liberal arts</a>. As a high school student, I made use of free,
+online materials, often in the form of college lectures when I was not being
+challenged in the classroom. Technology cannot solve all the problems in
+education but, I know firsthand that it can help. My decision to work on Course
+Builder did not begin with a desire to work in online education, however, but
+from my (almost) lifelong love affair with Google, its products, and its mission
+to organize the world’s information and make it universally accessible and
+useful. When I got a call from my future intern host on the Course Builder team
+offering me a summer job at my first-choice company working on a problem I am
+passionate about, I accepted the offer rather quickly.</p>
+
+<h2>What Course Builder Is</h2>
+<p>Course Builder is an open source project started by Google in 2012 that provides
+all of the tools for someone to create an interactive online course. It is
+Google&rsquo;s first foray into a tool of this kind and is already being used by
+educators throughout the world. Course Builder is built on
+<a href="https://developers.google.com/appengine/">Google App Engine</a> in Python.</p>
+
+<h2>My Project</h2>
+
+<h3>Motivation</h3>
+<p>When I was thinking about how I might use my summer, I wanted to build out a
+feature that would be immediately useful for students. I thought about various
+integrations with other Google products that could facilitate collaboration or
+help organize course materials for students, but I kept coming back to one
+feature I thought was obviously missing: search! Imagine a student working on a
+Latin assignment and struggling to remember how the gerundive is used. In a
+traditional course, that student might use the textbook’s index to find the
+relative page. In an online course, a student would need to find the relevant
+page by searching through the course’s structure manually. If the gerundive was
+explained in a video, as content in online courses often is, she would need to
+tediously skip through the video a minute at a time hoping to hear something
+familiar. It would be much better if the student could simply search for
+&ldquo;gerundive&rdquo; and be presented with the relevant information.</p>
+
+<p>&ldquo;But,&rdquo; you say, &ldquo;Google already does search! Why reinvent the wheel?&rdquo; To that I
+respond: I’m not trying to reinvent the wheel, but I do not think that a full
+internet search is appropriate here. Our Latin student could have searched the
+web for information about the gerundive, but she would have been inundated with
+complicated and unfamiliar definitions. Moreover, if she were studying a more
+arcane subject, she might not find any information at all.</p>
+
+<p>So, I decided to implement search so that any student taking a Course Builder
+course could navigate courses quickly.</p>
+
+<h3>Research Phase</h3>
+<p>When I stated that I didn’t want to reinvent the wheel, what I meant was that I
+never planned on creating a search platform from scratch, or at the very least,
+this was a last resort as it would mean that I would have far less time
+developing user-facing features. Before I began searching for possible search
+platforms, however, I needed a list of key features that I wanted to implement
+so that I could assess the relative goodness of each possible solution. I came
+up with the following:</p>
+
+<ul>
+  <li>The platform needed to be fast and support thousands of concurrent queries per
+second.</li>
+  <li>I wanted to be able to search through transcripts of YouTube videos and return
+a video fast-forwarded to the relevant spot.</li>
+  <li>The delay between a change in the course’s content and the corresponding
+update of the search index needed to be small.</li>
+</ul>
+
+<p>After some searching, I came up with a few options: the <a href="https://pypi.python.org/pypi/Whoosh/">Whoosh package</a>
+for Python, <a href="https://www.google.com/cse/">Google&rsquo;s Custom Search Engine</a>, and the new <a href="https://developers.google.com/appengine/docs/python/search/">Full-Text Search
+API</a> for Google App Engine (GAE). Though Custom Search Engine
+was initially attractive because it would require a minimal implementation on
+the Course Builder side, and the search results would benefit from Google&rsquo;s
+ranking algorithms, I had to rule it out because it would not allow me the
+flexibility to search YouTube transcripts. The GAE API was quite new, and I was
+wary of it. Whoosh seemed like the most full-featured and stable option, so I
+created two quick prototypes, one outside of GAE and one inside it. I subjected
+the sans-GAE one to several load tests, and it performed admirably, but when I
+tried running Whoosh inside GAE, I ran into problems. Whoosh uses the pickle
+module to serialize its search index, and because of differences in the standard
+Python environment and GAE, this problem turned into a nonstarter. It may not
+sound like a huge issue, but after burning a couple days trying to resolve it, I
+found out just how large a problem serialization can be and abandoned Whoosh.
+After cobbling together a quick prototype using GAE&rsquo;s Full-Text Search API
+inside Course Builder and subjecting it to a load test, I decided that even
+though it was still in the preview stage, it would work and was my best option.</p>
+
+<h3>Design Overview</h3>
+<p>If you want to know more about how search engines work in general, you can find
+plenty of information via your favorite search engine. If you need help using
+your favorite search engine, there&rsquo;s a great course to help you
+<a href="http://www.powersearchingwithgoogle.com/course/ps/course.html">here</a>!</p>
+
+<p>When I decided to take on search, it was immediately obvious that it would fit
+in quite well with Course Builder&rsquo;s existing modular structure. In designing any
+peripheral feature for a product, the key is defining and limiting the interface
+with the rest of the product and with the feature&rsquo;s dependencies. In the most
+general terms, I decided to separate the search module into two files,
+<a href="https://code.google.com/p/course-builder/source/browse/coursebuilder/modules/search/search.py"><code class="language-plaintext highlighter-rouge">search.py</code></a> which depends on App Engine&rsquo;s search API and contains
+all of the module&rsquo;s interface methods, and <a href="https://code.google.com/p/course-builder/source/browse/coursebuilder/modules/search/resources.py"><code class="language-plaintext highlighter-rouge">resources.py</code></a> which
+depends on Course Builder and manages the discovery of course resources. Here,
+resource refers to lessons, announcements, external links, YouTube videos linked
+to in the course, and others.</p>
+
+<p>I wanted to keep the search interface as small as possible, and I ended up with
+three methods: <code class="language-plaintext highlighter-rouge">index_all_docs</code>, <code class="language-plaintext highlighter-rouge">clear_index</code>, and <code class="language-plaintext highlighter-rouge">fetch</code>. These three methods
+were sufficient to cover all of the functionality I needed, and limiting myself
+to these three helped control the complexity and made the interface easy to
+test.</p>
+
+<p>In <code class="language-plaintext highlighter-rouge">resources.py</code>, I needed to handle both resource discovery and differential
+presentation in search results (i.e. displaying YouTube videos as videos). In
+the interest of clearly separating two concerns, I implemented two classes,
+<code class="language-plaintext highlighter-rouge">Resource</code> and <code class="language-plaintext highlighter-rouge">Result</code>, and for each resource in the course that I wanted to
+index and search over, I created a subclass of each of these. The subclass of
+<code class="language-plaintext highlighter-rouge">Resource</code> is responsible for finding all of the relevant resources in the
+course and creating an index document, which is then put into the App Engine
+search index. The subclass of <code class="language-plaintext highlighter-rouge">Result</code> is responsible for taking a result
+returned by the App Engine search index and formatting it based on the type of
+the original document.</p>
+
+<p><img src="/img/posts/search-for-coursebuilder/search_project_overview.png" alt="Search Project Overview" /></p>
+
+<h3>Future Work</h3>
+<p>While Course Builder&rsquo;s search module is a robust, end-to-end feature, there is
+still plenty of room for improvement. One thing I would like to see is analytics
+for the search history of a course. This would allow course authors to see what
+students are searching for most frequently and potentially give them insights
+into what students are struggling to comprehend or retain. More resources from a
+course, such as questions or PDF files, could be indexed. Also, I think making
+the search algorithm context-aware would have great value (e.g. videos and pages
+a student has recently viewed are given higher priority in the search results).</p>
+
+<h2>What I Learned</h2>
+<p>I do not have the time nor the energy to enumerate all of the things I learned
+this summer; I would be writing for days. Instead, I will attempt to restrict
+myself to the highlights. Firstly, I learned a great deal about software
+engineering and working on a team. For the first time this summer, I went
+through a real code review process, and I cannot overstate how valuable it was
+to receive almost immediate feedback on every line of code I wrote. My coding
+abilities improved, and I began to internalize the reviewer&rsquo;s voice so that
+while I was programming, I was always thinking of what my reviewer might say. I
+also learned a great deal about minimizing dependencies and isolating features
+so that processes like the indexing pipeline are fault-tolerant and independent
+from the rest of the code base.</p>
+
+<p>More importantly, though, I learned a great deal about myself. In a very short
+amount of time, having never written production Python code and having never
+used Google&rsquo;s internal tools or infrastructure, I was able to become a
+productive member of my team at one of the most technically-proficient companies
+in the world. That felt good, and it taught me that I have what it takes to be
+able to create good software. I contributed a feature to a product that will
+help improve education for thousands of students, and doing that showed me that
+I really can affect change in the world. I like that feeling, too, and I think
+that for me, this is just the beginning.</p>
+
+<p>So, thank you to Google and the Course Builder team for the opportunity to work
+on such a great project and your excellent guidance. It has been a wonderful
+summer, and I could not have done it without you.</p>
+
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+</body>
+</html>

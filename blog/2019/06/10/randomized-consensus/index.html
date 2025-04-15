@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>Randomized Consensus on Unknown Domains in Finite Rounds</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2019/06/10/randomized-consensus/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>Randomized Consensus on Unknown Domains in Finite Rounds</h1>
+  
+  <p class="date">10 Jun 2019</p>
+
+  <p>The most widely known result in distributed computing is the FLP result that
+proves the impossibility of consensus <a class="citation" href="#flp">[1]</a>. One of the assumptions of
+this theorem is that processes are <em>deterministic</em>. When randomness is allowed,
+the Ben-Or algorithm gives simple, elegant way to solve binary consensus <a class="citation" href="#ben-or83:anot-adva">[2]</a>. Or rather, \(\text{lim}_{t \to \infty} P(\text{consensus
+has been reached}) = 1\). The algorithm goes something like this.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>a = input({0, 1})
+
+loop:
+  send_phase1(a)
+  A = receive_phase1()
+  if ∃aʹ∈ A : |{a''∈ A : a'' = a'}| &gt; n/2:
+    b = a'
+  else:
+    b = ⊥
+
+  send_phase2(b)
+  B = receive_phase2()
+  if ∃bʹ∈ B : b' != ⊥ &amp;&amp; |{b'' ∈ B : b'' = b'}| &gt; f:
+    decide(bʹ)
+  if ∃bʹ∈ B : b' != ⊥:
+    a = b'
+  else:
+    a = choose_random({0, 1})
+</code></pre></div></div>
+
+<p>The algorithm proceeds in asynchronous rounds, each with two phases. In each
+phase, each process broadcasts its value for the phase and then waits for the
+values of \(n - f\) other processes. The safety argument is not complicated,
+and the termination argument is even more straightforward. Eventually the random
+choices made by processes in some round will be overwhelmingly in favor of
+either 0 or 1, and that value will decided by every process in the next round.</p>
+
+<p>This blog post is a record of a couple simple observations I made when
+re-reading the paper recently (in preparation for teaching it in 
+<a href="https://courses.cs.washington.edu/courses/cse452/19sp/">UW&rsquo;s distributed systems course</a>
+this past quarter) that I couldn&rsquo;t find written up anywhere else.</p>
+
+<h2>Unknown Domains</h2>
+
+<p>The first observation is that this algorithm can be modified to allow processes
+to have inputs values from larger domains than \(\{0, 1\}\). In fact, the input
+domain can be infinite. Furthermore, we don&rsquo;t even need the processes to know
+the input domain <em>a priori</em>. On the very last line of the protocol, when
+processes make a random choice, they simply choose from <em>all values seen so
+far</em> in any message.</p>
+
+<p>Since there are at most <em>n</em> possible input values (because there are at most <em>n</em>
+processes), the termination argument still applies. The only real difference is
+that termination could take longer. The original paper contained a theorem that
+when \(f\) is \(O(\sqrt{n})\), the expected number of rounds is constant. That
+theorem no longer applies when the set of possible decision values grows with \(n\).</p>
+
+<p>The other interesting fact is that this protocol can be further modified to
+support a model where not all processes get input values. Processes without
+input values initialize \(a = \bot\) on the first line. And on the last line
+when random choices are made, processes choose from all non-\(\bot\) values
+seen. As long as at least \(f + 1\) processes get input values, termination is
+still guaranteed. Even more interestingly, the check on first-phase messages can
+be refined somewhat in this case. The property that must be maintained is that
+no second-phase messages with different non-\(\bot\) values should exist for the
+same round. So, assuming we get \(n - f\) messages in the second round, if the
+number of messages for one non-\(\bot\) value is more than \(f\) greater
+than for every other non-\(\bot\) value, then we can safely choose that for the
+second phase.</p>
+
+<p>Both of these modifications are important for the way people use consensus in
+the real world — namely to implement state machine replication. The commands
+proposed to the state machine log often come from an infinite domain and are
+chosen by clients at runtime. The servers implementing the state machine do not
+know which commands will be proposed <em>a priori</em>. Furthermore, we would like the
+system to make progress even when clients don&rsquo;t send their commands to all
+servers.</p>
+
+<h2>Finite Rounds</h2>
+
+<p>The other observation is that the original protocol had all processes taking
+protocol steps and sending messages forever, even after they had decided values.
+This is not necessary. Instead, we can have processes send messages for each
+phase <em>proactively</em> up until they&rsquo;ve decided a value and the <em>reactively</em>
+thereafter. That is, once a process has reached a decision, it only sends a
+message for a phase after it has received at least one message for that phase
+(or a later phase).</p>
+
+<p>Because all non-faulty processes eventually decide a value, eventually all
+processes stop sending messages. Note, however, that this does not mean
+processes can halt. They must continue listening for messages forever (or at
+least \(f+1\) processes must). Eventually, however, they will no longer send any
+new messages.</p>
+
+<p>When combined the model above where not all processes get input values, we could
+also specify that processes which have not seen any non-\(\bot\) values remain
+in a reactive mode until they receive a non-\(\bot\) value.</p>
+
+<h3>References</h3>
+<ol class="acm-bib"><li><span id="flp"><span style="font-variant: small-caps">Fischer, M.J., Lynch, N.A. and Paterson, M.S.</span> Impossibility of Distributed Consensus with One Faulty Process. <i>J. ACM</i>. 32(2):374–382. Apr. 1985.</span></li>
+<li><span id="ben-or83:anot-adva"><span style="font-variant: small-caps">Ben-Or, M.</span> Another Advantage of Free Choice (Extended Abstract): Completely Asynchronous Agreement Protocols. In <i>Proceedings of the Second Annual ACM Symposium on Principles of Distributed Computing</i>. Montreal, Quebec, Canada. 1983. 27–30.</span></li></ol>
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>Linearizable, Wait-free Reads of Replicated State Machines</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2020/04/13/linearizable-waitfree-reads/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>Linearizable, Wait-free Reads of Replicated State Machines</h1>
+  
+  <p class="date">13 Apr 2020</p>
+
+  <p>I recently read the Gryff paper <a class="citation" href="#burke20-gryf-unif">[1]</a>, published this
+year at NSDI. As I was reading it, I noticed that the authors utilized a trick
+for achieving linearizable reads of replicated data that has value beyond their
+specific system. Many people who&rsquo;ve studied fault-tolerant replication have
+probably derived it on their own (as I did years ago), but I don&rsquo;t recall ever
+seeing the technique described in an earlier paper.<sup id="fnref:pub-exists" role="doc-noteref"><a href="#fn:pub-exists" class="footnote" rel="footnote">1</a></sup> So, I thought
+I&rsquo;d take the opportunity to describe the technique on its own as well as how it
+applies to any state machine replication (SMR) protocol, beyond the Gryff
+protocol described by Burke et al.</p>
+
+<p>Any SMR protocol that guarantees linearizability <a class="citation" href="#herlihy90:line-corr">[2]</a>
+of updates provides the abstraction that the changes to the underlying state
+(called &ldquo;commands&rdquo;) are processed by a single, fault-tolerant service. Or
+equivalently, there is a logical shared log onto which clients&rsquo; commands are
+appended. In practice, this shared log is often explicitly constructed, and
+separate machines (called &ldquo;replicas&rdquo;) consume the log by executing the commands
+in log order. We know from the FLP impossibility result <a class="citation" href="#flp">[3]</a> that in
+an asynchronous system in which some replicas can fail, there will always be the
+possibility that the system ceases to make progress and will forever be
+prevented from appending commands to the shared log, even if one assumes that
+all messages that get sent are eventually delivered.</p>
+
+<p>Does this then imply that reading the state of a replicated state machine is
+necessarily subject to the same limitations? Implementing read operations for an
+SMR protocol naïvely is straightforward. Reads can simple be treated as commands
+and can go through the normal replication protocol. Using this method, however,
+would subject reads to the impossibility result described above and the
+performance bottlenecks that come with some SMR protocols. However, it turns out
+that these downsides are not inherent. Instead, we can guarantee that responses
+to read requests can be returned in a <em>wait-free</em> manner <a class="citation" href="#herlihy91:wait-free">[4]</a>. That is, we can guarantee that these read operations
+will terminate in finite rounds of communication.</p>
+
+<p>Firstly, if one only cares about serializability of reads, rather than
+linearizability, the solution is straightforward. Any client reads the state of
+any replica in a single round of communication (sending the initial request to a
+majority to tolerate faults). As long as replicas have access to the state of
+the system after applying some prefix of the current shared log (as is almost
+always the case with SMR protocols), then a single replica&rsquo;s response to the
+client will suffice.<sup id="fnref:cache" role="doc-noteref"><a href="#fn:cache" class="footnote" rel="footnote">2</a></sup> In essence, this weakening of linearizability to
+serializability means that the client might receive <em>stale</em> data. Whether or not
+this is acceptable depends on the application, but mere serializability can
+sometimes lead to unintuitive results.</p>
+
+<p>To see how we will achieve wait-free, linearizable reads, we&rsquo;ll take the
+multi-instance Paxos protocol <a class="citation" href="#lamport98:part-time">[5]</a> as a running
+example (using some of the terminology from Paxos Made Moderately Complex <a class="citation" href="#vanRenesse15:paxo-made">[6]</a>).
+<img src="/img/tikz/fe6d1f2aca843cf14aac67e351dccd27.svg" class="tikz" />
+In this execution, we see a single client, \(c_1\) sending a command to the
+system. The leader sends a message to the followers and waits for responses from
+a majority (including itself). Once this is done, the leader executes the
+command, replies to the client, and lets the followers know that a decision has
+been reached and that they can safely execute the command as well.</p>
+
+<p>Suppose then, that after \(c_1\) receives a response to its command but before
+any of the followers are notified of the decision, \(c_2\) attempts to read
+the state of the replicated state machine. In principle, \(c_2\) is allowed as
+many rounds of communication with a majority of replicas as is necessary. For
+now, let&rsquo;s just consider a single round of communication. \(c_2\) sends the
+query to all replicas and because we would like to tolerate the failure of any
+minority, it only waits for a response from a majority.
+<img src="/img/tikz/6af6aac01798e74ca04e9f8c395c9f6c.svg" class="tikz" />
+Now, suppose that none of the responses it receives comes from the leader
+replica.</p>
+
+<p>Because \(c_2\) initiated its request <em>after</em> \(c_1\) got a response, the
+state \(c_2\) reads must reflect \(c_1\)&rsquo;s command. However, as they respond
+to the \(c_2\)&rsquo;s read, none of the followers yet knows that a decision has been
+reached about \(c_1\)&rsquo;s command, even if they do know that there is a decision
+pending. It would seem that the only safe thing for to do in this scenario is to
+wait until a decision on the pending command is reached and to delay a response
+to the read until then. However, that would put us back in the realm where the
+FLP result applies and preclude any hopes of wait-freedom.</p>
+
+<p>The solution is fairly straightforward. The problem is that the state updates
+are replied to before knowledge of their commitment has reached a majority. So,
+we will delay the response the client until that knowledge has reached a
+majority.
+<img src="/img/tikz/27717a00a095c6376f91d048eb0499dd.svg" class="tikz" />
+The leader waits until a majority executes the command and acknowledges the
+decision before responding.<sup id="fnref:client-writeback" role="doc-noteref"><a href="#fn:client-writeback" class="footnote" rel="footnote">3</a></sup></p>
+
+<p>We&rsquo;re almost done. You might think that this completely resolves the issue, and
+in the setting we&rsquo;ve described so far in which there are only two clients &ndash; one
+sending updates and the other reading the state &ndash; it does. However, there is a
+subtle problem that arises when there are multiple clients sending reads.
+<img src="/img/tikz/5b1675873959bb50c4bb25a88e42985c.svg" class="tikz" />
+In this example, \(c_3\) is also attempting to read the state of the
+replicated state machine. Here, the result of \(c_1\)&rsquo;s command will be
+visible to \(c_2\) but not to \(c_3\). Since \(c_3\) initiated its read
+after \(c_2\)&rsquo;s already finished, this would be a violation of
+linearizability.</p>
+
+<p>We solve this issue the same way the ABD register protocol <a class="citation" href="#abd">[7]</a> does.
+We add a write-back phase to the read protocol, in which the client ensures that
+a majority of the replicas are at least as up-to-date as the state the client
+learned about during the first phase of the read. It distributes any decisions
+which have not yet reached a majority and waits until there is some up-to-date
+majority before considering the read completed.
+<img src="/img/tikz/870bd0085fc1fa6eacd4d1e71b045d44.svg" class="tikz" /></p>
+
+<p>Of course, if the original majority the client read from all had the same set
+of decisions (or at least all returned the same result if only a subset of the
+state was read), then this second phase can be skipped entirely.</p>
+
+<p>So, we have two strategies: (1) delaying the client-side completion of updates
+until they&rsquo;re permanently committed at a majority and (2) reading using a
+two-round protocol, the second round of which ensures that a majority is
+up-to-date with the value read. Neither of these strategies is specific to Paxos
+and can be applied to SMR protocols broadly. However, they do present
+trade-offs, as Burke et al. describe.</p>
+
+<h3>References</h3>
+<ol class="acm-bib"><li><span id="burke20-gryf-unif"><span style="font-variant: small-caps">Burke, M., Cheng, A. and Lloyd, W.</span> Gryff: Unifying Consensus and Shared Registers. In <i>17th USENIX Symposium on Networked Systems Design and Implementation (NSDI 20)</i>. Feb. 2020. 591–617.</span></li>
+<li><span id="herlihy90:line-corr"><span style="font-variant: small-caps">Herlihy, M.P. and Wing, J.M.</span> Linearizabiliy: A Correctness Condition for Concurrent
+                  Objects. <i>ACM Transactions on Programming Languages and Systems</i>. 12(3):463–492. Jul. 1990.</span></li>
+<li><span id="flp"><span style="font-variant: small-caps">Fischer, M.J., Lynch, N.A. and Paterson, M.S.</span> Impossibility of Distributed Consensus with One Faulty Process. <i>J. ACM</i>. 32(2):374–382. Apr. 1985.</span></li>
+<li><span id="herlihy91:wait-free"><span style="font-variant: small-caps">Herlihy, M.</span> Wait-Free Synchronization. <i>ACM Trans. Program. Lang. Syst.</i> 13(1):124–149. Jan. 1991.</span></li>
+<li><span id="lamport98:part-time"><span style="font-variant: small-caps">Lamport, L.</span> The Part-time Parliament. <i>ACM Transactions on Computer Systems</i>. 16(2):133–169. May 1998.</span></li>
+<li><span id="vanRenesse15:paxo-made"><span style="font-variant: small-caps">Van Renesse, R. and Altinbuken, D.</span> Paxos Made Moderately Complex. <i>ACM Comput. Surv.</i> 47(3):42:1–42:36. Feb. 2015.</span></li>
+<li><span id="abd"><span style="font-variant: small-caps">Attiya, H., Bar-Noy, A. and Dolev, D.</span> Sharing Memory Robustly in Message-Passing Systems. <i>J. ACM</i>. 42(1):124–142. Jan. 1995.</span></li></ol>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:pub-exists" role="doc-endnote">
+      <p>If this technique has been previously described in the
+literature, I would very much appreciate someone sending me a link!&nbsp;<a href="#fnref:pub-exists" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:cache" role="doc-endnote">
+      <p>Each response will need to be tagged with some sort of version number,
+and the client will have to cache responses locally to enforce the process
+order requirement of serializability.&nbsp;<a href="#fnref:cache" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:client-writeback" role="doc-endnote">
+      <p>The phase added to the update protocol could instead be
+initiated by the client, and the client could wait for acknowledgments to
+the decision before considering the update complete. In the Paxos context,
+having the leader drive this second phase to completion is simpler.&nbsp;<a href="#fnref:client-writeback" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+</body>
+</html>

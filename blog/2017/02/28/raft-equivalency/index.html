@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>Raft is (Equivalent to) Paxos, VR</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2017/02/28/raft-equivalency/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>Raft is (Equivalent to) Paxos, VR</h1>
+  
+  <p class="date">28 Feb 2017</p>
+
+  <p>I shouldn&rsquo;t have to write this blog post, but one too many times have I received
+online comments, questions at conferences, and even paper reviews claiming that
+Raft is more efficient than Paxos. This is not the case; as Ongaro and
+Ousterhout note, <strong>Raft, VR, and Paxos are equivalent in efficiency</strong>.</p>
+
+<p>While the original Paxos protocol was rather concise in its description <a class="citation" href="#lamport98:part-time">[1]</a>, it can be easily modified into a full-featured state
+machine replication implementation. These modifications have been described in
+many places (e.g., &ldquo;Paxos Made Live&rdquo; <a class="citation" href="#chandra07:paxo-made">[2]</a>). The normal
+case operation of Paxos is visualized and described below:</p>
+
+<p><img src="/img/posts/raft-equivalency/paxos.svg" alt="Paxos Algorithm" /></p>
+
+<ol>
+  <li>The client sends its command, \(c\), to the current leader.</li>
+  <li>The leader proposes \(c\) in the latest unfilled slot in its log, sending the
+proposal to the other replicas.</li>
+  <li>The replicas put \(c\) into the same slot in their logs and respond to the
+leader.</li>
+  <li>The leader waits for a majority of replicas (including itself) to respond and
+then executes the command and responds to the client with the result.</li>
+</ol>
+
+<p>Viewstamped Replication (VR) was developed at the same time as Paxos <a class="citation" href="#oki88:view-repl">[3, 4]</a>. While VR includes some practical details
+left out of the original Paxos papers, the core mechanism it uses is the same as
+Paxos.<sup id="fnref:paxos-vr-diff" role="doc-noteref"><a href="#fn:paxos-vr-diff" class="footnote" rel="footnote">1</a></sup> Moreover, the normal case protocol is exactly the same as
+described above, and its performance is identical.</p>
+
+<p>Raft was published much later, in an effort to be more understandable than the
+existing descriptions of Paxos and VR <a class="citation" href="#ongaro14:in-sear">[5]</a>, and the Raft
+protocol is almost identical to VR.<sup id="fnref:raft-vr-diff" role="doc-noteref"><a href="#fn:raft-vr-diff" class="footnote" rel="footnote">2</a></sup> Its normal case operation is
+<em>also exactly the same as described above</em>. In terms of message delays, number
+of messages sent and received, and amount of computation needed in the normal
+case, <strong>Raft has no performance benefits compared to VR or a full-featured Paxos
+implementation</strong>.</p>
+
+<h3>References</h3>
+<ol class="acm-bib"><li><span id="lamport98:part-time"><span style="font-variant: small-caps">Lamport, L.</span> The Part-time Parliament. <i>ACM Transactions on Computer Systems</i>. 16(2):133–169. May 1998.</span></li>
+<li><span id="chandra07:paxo-made"><span style="font-variant: small-caps">Chandra, T.D., Griesemer, R. and Redstone, J.</span> Paxos Made Live: An Engineering Perspective. In <i>Proceedings of the Twenty-sixth Annual ACM Symposium on Principles of Distributed Computing</i>. Portland, Oregon, USA. 2007. 398–407.</span></li>
+<li><span id="oki88:view-repl"><span style="font-variant: small-caps">Oki, B.M. and Liskov, B.H.</span> Viewstamped Replication: A New Primary Copy Method to
+                   Support Highly-Available Distributed Systems. In <i>Proceedings of the 7th ACM Symposium on
+                   Principles of Distributed Computing (PODC
+                   ’88)</i>. Toronto, Canada. Aug. 1988.</span></li>
+<li><span id="liskov12:view-repl"><span style="font-variant: small-caps">Liskov, B. and Cowling, J.</span> <i>Viewstamped Replication Revisited</i>. Technical Report MIT-CSAIL-TR-2012-021. MIT Computer Science and Artificial Intelligence
+                   Laboratory.</span></li>
+<li><span id="ongaro14:in-sear"><span style="font-variant: small-caps">Ongaro, D. and Ousterhout, J.</span> In Search of an Understandable Consensus Algorithm. In <i>Proceedings of the 2014 USENIX Annual Technical Conference</i>. Philadelphia, PA. 2014. 305–320.</span></li></ol>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:paxos-vr-diff" role="doc-endnote">
+      <p>There is a slight difference between VR and Paxos in the way
+that invariants are guaranteed across leader elections, but it does not
+affect the normal case operations of the protocols.&nbsp;<a href="#fnref:paxos-vr-diff" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:raft-vr-diff" role="doc-endnote">
+      <p>The differences between Raft and VR are detailed in the Raft
+paper <a class="citation" href="#ongaro14:in-sear">[5]</a>.&nbsp;<a href="#fnref:raft-vr-diff" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+</body>
+</html>

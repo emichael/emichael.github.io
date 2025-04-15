@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google analytics tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYGH5M4NVH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CYGH5M4NVH');
+  </script>
+
+  <!-- Metadata -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noarchive">
+
+  <title>A Game of Thrones</title>
+  
+  <meta name="author" content="Ellis Michael">
+
+  <link rel="canonical" href="https://ellismichael.com/blog/2018/01/12/a-game-of-thrones/">
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+
+  <!-- Custom fonts -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/academicons/css/academicons.min.css"/>
+
+  <!-- Custom CSS -->
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="row">
+      <div class="title-wrapper">
+        <h1>Ellis Michael</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="nav-wrapper"><nav><ul>
+        
+          <li>
+            <a href="/">Home</a>
+          </li>
+        
+          <li>
+            <a href="/publications/">Publications</a>
+          </li>
+        
+          <li>
+            <a href="/code/">Code</a>
+          </li>
+        
+          <li>
+            <a href="/cv/">CV</a>
+          </li>
+        
+      </ul></nav></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+  <div class="std-content-wrapper">
+    <div class="post">
+  <h1>A Game of Thrones</h1>
+  
+  <p class="date">12 Jan 2018</p>
+
+  <p>Suppose you&rsquo;re the ruler of a vast empire, composed of \(k\) kingdoms.
+As emperor, you&rsquo;ve decided that who sits on each throne is too important to be left up to random things like birth order; you&rsquo;d like to manage the succession to each throne personally.
+You don&rsquo;t want to be bothered each time a king or queen dies, however.
+You are emperor, after all.</p>
+
+<p>Instead, you decide that you will handpick the line of succession for each of the \(k\) thrones.
+These succession orders will be valid until \(f\) nobles sitting on or in line to a throne die, at which point you will revisit the succession question and design a new chart.
+There is one caveat, however: you do not want any of the kingdoms to be consolidated.
+None of your vassals should sit on two thrones simultaneously.</p>
+
+<p>Let \(n\) be the number of your vassals you consider worthy of sitting on one of your empire&rsquo;s thrones.
+We&rsquo;d like to answer the following question:
+how large must \(n\) be to support lines of succession for \(k\) thrones such that no king or queen will ever sit on two thrones even if \(f\) nobles in those succession lines die?</p>
+
+<p>In order to have a suitable succession chart, what you need to come up with is a matrix:</p>
+
+\[%--------------------
+% PREAMBLE
+%--------------------
+\require{cancel}
+\require{color}
+
+\renewcommand\CancelColor{\color{blue}}
+
+\newcommand{\ullabeld}[3]{ {\scriptstyle #3} \left \{
+  \vphantom{#1}\smash{\overbrace{#1}^{#2}}
+  \right.
+  \vphantom{\overbrace{#1}^#2}
+}
+%--------------------
+% END PREAMBLE
+%--------------------
+
+\ullabeld{\begin{matrix}
+  \nu_{1,1} &amp; \nu_{1,2} &amp; \cdots &amp; \nu_{1,k} \\
+  \nu_{2,1} &amp; \nu_{2,2} &amp; \cdots &amp; \nu_{2,k} \\
+  \vdots \\
+  \nu_{f+1,1} &amp; \nu_{f+1,2} &amp; \cdots &amp; \nu_{f+1,k}
+\end{matrix}}{k}{f+1}\]
+
+<p>where \(\nu_{i,j}\) is the \(i\)th in line to the \(k\)th throne (the 1st in line currently sits on the throne).
+For a given \(j\), each of the \(\nu_{i, j}\) must be unique.
+This matrix also needs to have the special property that if up to \(f\) of the nobles you appoint die, none of your vassals occupies two thrones simultaneously.</p>
+
+<p>For instance, a succession setup for \(k=3\), \(f=3\) of the following form is not admissible under the previous condition.</p>
+
+\[\begin{matrix}
+  a &amp; b &amp; c \\
+  d &amp; e &amp; f  \\
+  g &amp; d &amp; h \\
+  i &amp; j &amp; k \\
+\end{matrix}\]
+
+<p>If the following 3 nobles died, then \(d\) would sit on two thrones at the same time.</p>
+
+\[\begin{matrix}
+  \xcancel{a} &amp; \xcancel{b} &amp; c \\
+  d &amp; \xcancel{e} &amp; f  \\
+  g &amp; d &amp; h \\
+  i &amp; j &amp; k \\
+\end{matrix}\]
+
+<p>With the groundwork laid, we&rsquo;re ready to start tackling the problem of how large \(n\) must be to support an admissible succession plan for any given \(k\) and \(f\).
+The first thing to notice is that none of your vassals currently sitting on a throne can be in the line of succession for any other throne; otherwise, if the \(f\) nobles ahead of them in the other line of succession died, they&rsquo;d sit on two thrones simultaneously.</p>
+
+\[\begin{matrix}
+  v_1 &amp; \xcancel{\cdot} \\
+  \cdot &amp; \xcancel{\cdot} \\
+  \cdot &amp; \xcancel{\cdot} \\
+  \vdots \\
+  \cdot &amp; v_1 \\
+\end{matrix}\]
+
+<p>So, the picture we have so far looks like this:</p>
+
+\[\begin{matrix}
+  v_1 &amp; v_2 &amp; v_3 &amp; \cdots &amp; v_k \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \vdots \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+\end{matrix}\]
+
+<p>The next thing to notice is that any second-in-line noble can occupy any of the last-in-line positions to any other throne but no higher position.</p>
+
+\[\begin{matrix}
+  v_1 &amp; v_2 &amp; v_3 &amp; \cdots &amp; v_k \\
+  v_{k+1} &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \vdots \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \cdot &amp; v_{k+1} &amp; \cdot &amp; \cdots &amp; \cdot \\
+\end{matrix}\]
+
+<p>In fact, a second-in-line noble can occupy <em>all</em> of the other last-in-line positions.</p>
+
+\[\begin{matrix}
+  v_1 &amp; v_2 &amp; v_3 &amp; \cdots &amp; v_k \\
+  v_{k+1} &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \vdots \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \cdot &amp; v_{k+1} &amp; v_{k+1} &amp; \cdots &amp; v_{k+1} \\
+\end{matrix}\]
+
+<p>But, we need at least \(k\) second-in-line nobles, so we might as well distribute the other positions equally.</p>
+
+\[\begin{matrix}
+  v_1 &amp; v_2 &amp; v_3 &amp; \cdots &amp; v_k \\
+  v_{k+1} &amp; v_{k+2} &amp; v_{k+3} &amp; \cdots &amp; v_{2k} \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  \vdots \\
+  \cdot &amp; \cdot &amp; \cdot &amp; \cdots &amp; \cdot \\
+  v_{2k} &amp; v_{k+1} &amp; v_{k+2} &amp; \cdots &amp; v_{2k -1} \\
+\end{matrix}\]
+
+<p>Similarly, a third-in-line noble can be second-to-last in another line of succession but no higher.</p>
+
+\[\begin{matrix}
+  v_1 &amp; v_2 &amp; v_3 &amp; \cdots &amp; v_k \\
+  v_{k+1} &amp; v_{k+2} &amp; v_{k+3} &amp; \cdots &amp; v_{2k} \\
+  v_{2k+1} &amp; v_{2k+2} &amp; v_{2k+3} &amp; \cdots &amp; v_{3k} \\
+  \vdots \\
+  v_{3k} &amp; v_{2k+1} &amp; v_{2k+2} &amp; \cdots &amp; v_{3k -1} \\
+  v_{2k} &amp; v_{k+1} &amp; v_{k+2} &amp; \cdots &amp; v_{2k -1} \\
+\end{matrix}\]
+
+<p>This trend continues until we get to the &ldquo;middle&rdquo; row (the \(\left \lceil \frac{f}{2} \right \rceil + 1\) row). If \(f\) is even, then this is the exact same situation as the above.
+Nobles in these positions in the lines of successions can also occupy the position directly below this one in another line of succession but cannot simultaneously occupy any positions on the same row or higher.
+However, if \(f\) is odd, a single noble can simultaneously occupy <em>all</em> positions in this row, since \(2 \left \lceil \frac{f}{2} \right \rceil &gt; f\).</p>
+
+<p>This brings us finally to a lower bound on a value of \(n\), as well as a plan for what the lines of succession could look like when the bound is tight.</p>
+
+\[n \ge \begin{cases}
+k\left (\frac{f}{2} + 1 \right ) &amp; \text{$f$ even} \\
+k \left (\left \lfloor \frac{f}{2} \right \rfloor + 1 \right ) + 1 &amp; \text{$f$ odd}
+\end{cases}\]
+
+
+</div>
+
+  </div>
+</div>
+
+  </main>
+
+  <footer>
+    <div class="row">
+      <div class="contact-info">
+        <h3>Around the Web</h3>
+        <ul>
+          
+            <li>
+              <a href="https://github.com/emichael"><i title="GitHub" class="fa fa-fw fa-github"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://scholar.google.com/citations?user=UPrphFkAAAAJ"><i title="Google Scholar" class="ai ai-fw ai-google-scholar"></i></a>
+            </li>
+          
+            <li>
+              <a href="https://www.linkedin.com/in/rellismichael"><i title="LinkedIn" class="fa fa-fw fa-linkedin"></i></a>
+            </li>
+          
+            <li>
+              <a href="/feed.xml"><i title="RSS Feed" class="fa fa-fw fa-rss"></i></a>
+            </li>
+          
+        </ul>
+      </div>
+      <div class="contact-email">
+        <h3>Email</h3>
+        <p>(at ellis (dot ellismichael com))</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="copyright">
+        Copyright &copy; Ellis Michael 2013&ndash;2025 |
+        Last updated: April 14, 2025
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery Version 1.11.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+
+  
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+</body>
+</html>
